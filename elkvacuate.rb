@@ -9,12 +9,12 @@ options = {}
 OptionParser.new do |opts|
     opts.banner = "Usage: elkvacuate.rb -a {evacuate|invacuate} -h host [-s stack]"
     opts.on('-a', '--action A', String, "Action to take on node") { |v| options[:action] = v }
-    opts.on('-h', '--host H', String, "Host to take action on") { |v| options[:host] = v }
+    opts.on('-h', '--host H', String, "Host to evacuate or invacuate") { |v| options[:host] = v }
     opts.on('-u', '--url U', String, "URL of Elasticsearch master") { |v| options[:url] = v }
-    opts.on('-p', '--port P', String "Port the ES master is listening on (default is 9200)") { |v| options[:port] = v || "9200" }
+    opts.on('-p', '--port P', String, "Port the ES master is listening on (default is 9200)") { |v| options[:port] = v || "9200" }
 end.parse! 
 
-elasticsearch_uri = "#{options[:url]}:#{options[:port}"
+elasticsearch_uri = "#{options[:url]}:#{options[:port]}"
 uri = URI.parse(elasticsearch_uri)
 @http = Net::HTTP.new(uri.host, uri.port)
 
