@@ -11,9 +11,12 @@ OptionParser.new do |opts|
     opts.on('-a', '--action A', String, "Action to take on node") { |v| options[:action] = v }
     opts.on('-h', '--host H', String, "Host to evacuate or invacuate") { |v| options[:host] = v }
     opts.on('-u', '--url U', String, "URL of Elasticsearch master") { |v| options[:url] = v }
-    opts.on('-p', '--port P', String, "Port the ES master is listening on (default is 9200)") { |v| options[:port] = v || "9200" }
+    opts.on('-p', '--port P', String, "Port the ES master is listening on (default is 9200)") { |v| options[:port] = v }
 end.parse! 
 
+if not options[:port]
+    options[:port] = "9200"
+end
 elasticsearch_uri = "#{options[:url]}:#{options[:port]}"
 uri = URI.parse(elasticsearch_uri)
 @http = Net::HTTP.new(uri.host, uri.port)
@@ -67,7 +70,7 @@ def evacuate_node(evacuating_node)
             puts "Skipping today's index #{index}..."
             next
         end
-        puts "Evacuating #{index} to #{evacuating_node}..."
+        puts "Evacuating #{index} from #{evacuating_node}..."
         # The sleeps are to avoid killing the master
         sleep 10
         begin
@@ -88,17 +91,22 @@ def evacuate_node(evacuating_node)
                 response = @http.put("/#{index}/_settings", settings_json)
                 puts "#{response.body} (#{response.code} #{response.message})"
             end
-
+        rescue Exception => e
+            puts "Error setting new exclude list for index #{index}: #{e}"
+            puts "Waiting 10 seconds before continuing..."
+            sleep 10
+        end
+        begin
             if include_list.include?(evacuating_node)
                 include_list = remove_node_from_list(include_list, evacuating_node)
                 settings_json = JSON.generate({ 'index' => { 'routing' => { 'allocation' => { 'include' => { '_host' => "#{include_list}" } } } } })
-                respose = @http.put("/#{index}/_settings", settings_json)
+                response = @http.put("/#{index}/_settings", settings_json)
                 puts "#{response.body} (#{response.code} #{response.message})"
             end
         rescue Exception => e
-            puts "Error putting new settings for index #{index}: #{e}"
-            puts "Waiting one minute before continuing..."
-            sleep 60
+            puts "Error setting new include list for index #{index}: #{e}"
+            puts "Waiting 10 seconds before continuing..."
+            sleep 10
         end
     end
 end
@@ -145,7 +153,12 @@ def invacuate_node(invacuating_node)
                 puts "#{response.body} (#{response.code} #{response.message})"
                 sleep 10
             end
-
+        rescue Exception => e
+            puts "Error setting new exclude list for index #{index}: #{e}"
+            puts "Waiting 10 seconds before continuing..."
+            sleep 10
+        end
+        begin
             if not include_list.include?("#{invacuating_node}")
                 puts "Adding node to include list..."
                 include_list = add_node_to_list(include_list, invacuating_node)
@@ -155,9 +168,9 @@ def invacuate_node(invacuating_node)
                 sleep 10
             end
         rescue Exception => e
-            puts "Error putting new settings for index #{index}: #{e}"
-            puts "Waiting 1 minute before continuing..."
-            sleep 60
+            puts "Error setting new include list for index #{index}: #{e}"
+            puts "Waiting 10 seconds before continuing..."
+            sleep 10
         end
     end
 end
