@@ -1,0 +1,15 @@
+{
+  "id": "lumberjack",
+  "nodes": [
+    {
+      "pattern": "dev-server.example.com",
+      "override": {
+        "servers": [
+          "devlogstash01.example.com:9991",
+          "devlogstash02.example.com:9991"
+        ]
+      }
+    }
+  ]
+}
+

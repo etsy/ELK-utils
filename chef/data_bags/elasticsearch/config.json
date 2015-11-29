@@ -1,0 +1,39 @@
+{
+  "id": "config",
+  "clusters": {
+    "elasticsearch": {
+      "es_master_cname": "elasticsearchmaster.example.com",
+      "es_snapshot_index_prefix": "logstash",
+      "master_nodes": [
+        "elasticsearchmaster01.example.com",
+        "elasticsearchmaster02.example.com",
+       "elasticsearchmaster03.example.com"
+      ],
+      "data_nodes": [
+        "elasticsearch1.example.com",
+        "elasticsearch2.example.com",
+        "elasticsearch3.example.com",
+        "elasticsearch4.example.com",
+        "elasticsearch5.example.com",
+        "elasticsearch6.example.com",
+        "elasticsearch7.example.com",
+        "elasticsearch8.example.com",
+        "elasticsearch9.example.com",
+      ],
+      "member_nodes": [
+        "kibana01.example.com",
+        "kibana02.example.com"
+      ],
+    }
+  },
+  "node_overrides": [
+    {
+      "pattern": "elasticsearch01.example.com",
+      "override": {
+        "es_mem": "24G",
+        "num_instances": 2,
+        "max_thread_count": 9
+      }
+    }
+  ]
+}

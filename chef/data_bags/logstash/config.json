@@ -1,0 +1,13 @@
+{
+  "id": "config",
+  "clusters": {
+    "prodelk": {
+      "routers": [
+        "logstash01.example.com",
+        "logstash02.example.com",
+        "logstash03.example.com",
+        "logstash04.example.com"
+      ]
+    }
+  }
+}

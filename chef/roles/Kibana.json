@@ -1,0 +1,41 @@
+{
+  "name": "Kibana",
+  "description": "These servers run Kibana",
+  "json_class": "Chef::Role",
+  "default_attributes": {
+    "elasticsearch": {
+      "es_cluster_name": "elasticsearch"
+    },
+    "logstash": {
+        "server": {
+            "es_cluster": "elasticsearch"
+        }
+    },
+    "lumberjack_files": [
+        {
+            "paths": [ "/var/log/httpd/kibana_access_log" ],
+            "fields": { "type": "kibana_access_log" }
+        },
+        {
+            "paths": [ "/var/log/httpd/kibana_error_log" ],
+            "fields": { "type": "kibana_error_log" }
+        }
+    ],
+    "elasticsearch": {
+        "java_home": "/usr/java/jdk1.8.0_60",
+        "jmx" : "true"
+    }
+  },
+  "chef_type": "role",
+  "run_list": [
+    "role[Base]",
+    "recipe[installers::jdk8_u60]",
+    "recipe[elasticsearch]",
+    "recipe[apache]",
+    "recipe[apache::mod_ssl]",
+    "recipe[kibana]",
+    "recipe[logstash::lumberjack]"
+  ],
+  "env_run_lists": {
+  }
+}
