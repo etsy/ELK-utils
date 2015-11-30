@@ -1,0 +1,2 @@
+CONFLUENCE_FAILED_LOGIN %{DATE} %{TIME} %{WORD} \[%{DATA}\] \[%{JAVACLASS:java_class}\] %{WORD:java_method}\nFailed login attempt for user '%{WORD:user}':\nRequest URL: %{URI:request_url}\nUser-Agent: %{GREEDYDATA}\nRemote Address: %{IP:remote_address}\nX-Forwarded-For: %{IP}
+CONFLUENCE_SUCCESSFUL_LOGIN %{TIMESTAMP_ISO8601:[@metadata][timestamp]} %{WORD} \[%{PROG}\] \[%{PROG}\] onSuccessfulLoginAttempt Successful login attempt for user \'%{WORD:username}\'

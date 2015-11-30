@@ -1,0 +1,28 @@
+  # We'll relay events for TripYarn, DNS queries, VPN, Suricata, and CorpELK ssh logs to the TMS ELK cluster.
+  # We're doing this because the sources of these logs have access to the Corp
+  # network but not the Prod network where TMS ELK lives.
+  if [type] in ["toomanysecrets", "OpenVPN_auth", "named_query_log", "SuricataIDS", "linux_secure_log", "dns_answer_log"] {
+    lumberjack {
+      hosts => <%= node[:logstash][:server][:tms_relay_hosts] %>
+      codec => 'json'
+      port => 9992
+      ssl_certificate => "/etc/pki/logstash/lumberjack.crt"
+      <%# The default worker count is 1 but I'm dropping this here as a reminder we may need to bump it.%>
+      workers => 1
+    }
+  } else {
+    elasticsearch {
+      host => "<%= node[:logstash][:server][:es_server] %>"
+      node_name => "ls.<%= node[:fqdn] %>"
+  <% if node[:logstash][:server][:es_cluster] -%>
+      cluster => "<%= node[:logstash][:server][:es_cluster] %>"
+  <% end -%>
+      index => "%{esindex}"
+      manage_template => false
+      workers => <%= node[:logstash][:server][:es_workers] %>
+      protocol => "transport"
+      flush_size => <%= node[:logstash][:flush_size] %>
+      idle_flush_time => 5
+      document_id => "%{[@metadata][@hashid]}"
+    }
+  }

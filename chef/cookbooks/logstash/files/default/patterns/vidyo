@@ -1,0 +1,1 @@
+VIDYO_AUDIT (?:%{SYSLOGTIMESTAMP}) %{IP:ip} %{INT} %{TIMESTAMP_ISO8601:[@metadata][timestamp]} %{DATA:hostname} java \- \- \- %{DATA:program} \[audit %{GREEDYDATA:event_data}\]

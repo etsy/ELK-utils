@@ -1,0 +1,24 @@
+# JVM Configuration for ElasticSearch
+# ===================================
+# This file is managed by Chef, do not edit manually, your changes *will* be overwritten!
+#
+# See <https://github.com/elasticsearch/elasticsearch/blob/master/bin/elasticsearch.in.sh>
+#
+
+JAVA_HOME=<%= @java_home %>
+ES_HOME='<%= node[:elasticsearch][:es_home] %>'
+ES_CLASSPATH=$ES_CLASSPATH:$ES_HOME/lib/elasticsearch-1.2.1.jar:$ES_HOME/lib/*:$ES_HOME/lib/sigar/*
+ES_HEAP_SIZE=<%= node[:elasticsearch][:es_mem] %>
+
+LOG_DIR=/var/log/elasticsearch<%= @instance %>
+JAVA_OPTS="
+  -server
+  -Djava.net.preferIPv4Stack=true
+  -Des.config=<%= node[:elasticsearch][:conf_dir] %>/elasticsearch<%= @instance %>.yml
+  -Xms<%= node[:elasticsearch][:es_mem] %>
+  -Xmx<%= node[:elasticsearch][:es_mem] %>
+  -Xss256k
+  <%= node[:elasticsearch][:gc_opts] %>
+  -Xloggc:${LOG_DIR}/gc.log
+  -XX:+UseCompressedOops
+  -XX:+HeapDumpOnOutOfMemoryError"

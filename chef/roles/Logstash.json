@@ -30,7 +30,6 @@
   "run_list": [
     "role[Base]",
     "recipe[installers::jdk8_u60]",
-    "recipe[logstash::lumberjack_keys]",
     "recipe[logstash::server]",
     "recipe[logstash::plugins]"
   ],

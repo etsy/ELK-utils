@@ -1,0 +1,26 @@
+[Unit]
+Description=Elasticsearch Instance '<%= @instance %>'
+Documentation=http://www.elasticsearch.org
+After=network.target syslog.target
+
+[Service]
+Type=forking
+EnvironmentFile=/etc/sysconfig/elasticsearch<%= @instance %>
+User=elasticsearch
+Group=elasticsearch
+PIDFile=/var/run/elasticsearch/elasticsearch<%= @instance %>.pid
+ExecStartPre=/bin/mkdir -p /var/run/elasticsearch
+ExecStartPre=/bin/chown elasticsearch:elasticsearch /var/run/elasticsearch
+ExecStart=/usr/share/elasticsearch/bin/elasticsearch -p /var/run/elasticsearch/elasticsearch<%= @instance %>.pid -d -Des.default.path.home=$ES_HOME -Des.default.path.logs=$LOG_DIR -Des.default.path.data=$DATA_DIR -Des.default.path.work=$WORK_DIR -Des.default.path.conf=$CONF_DIR
+PermissionsStartOnly=true
+# Matches MAX_OPEN_FILES previously defined in sysconfig. TIL: Variable substitution is for the process, not *within* a unit file. Context...
+LimitNOFILE=65535
+# See MAX_LOCKED_MEMORY in sysconfig, use "infinity" when MAX_LOCKED_MEMORY=unlimited and using bootstrap.mlockall: true
+#LimitMEMLOCK=infinity
+# Set the process limit.
+LimitNPROC=10240
+# Shutdown delay in seconds, before process is tried to be killed with KILL (if configured)
+TimeoutStopSec=20
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,14 @@
+  elasticsearch {
+    host => "<%= node[:logstash][:server][:es_server] %>"
+    node_name => "ls.<%= node[:fqdn] %>"
+<% if node[:logstash][:server][:es_cluster] -%>
+    cluster => "<%= node[:logstash][:server][:es_cluster] %>"
+<% end -%>
+    index => "%{esindex}"
+    manage_template => false
+    workers => <%= node[:logstash][:server][:es_workers] %>
+    protocol => "transport"
+    flush_size => <%= node[:logstash][:flush_size] %>
+    idle_flush_time => 5
+    document_id => "%{[@metadata][@hashid]}"
+  }

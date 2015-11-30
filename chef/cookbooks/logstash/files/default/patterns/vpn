@@ -1,0 +1,1 @@
+VPN %{HOST:hostname} : (?<vpn_timestamp>%{DAY} %{MONTH} %{MONTHDAY} %{TIME} %{YEAR}) (?<username>[A-Za-z-]+)?\/?%{IPV4:ipaddress}:%{INT:port} %{GREEDYDATA:event_message}

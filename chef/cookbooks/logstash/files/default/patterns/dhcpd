@@ -1,0 +1,10 @@
+DHCPD_PREFIX %{SYSLOGTIMESTAMP:[@metadata][timestamp]}\s*%{HOSTNAME:hostname}\s*%{SYSLOGPROG:program}\:\s*(%{WORD:dhcp_action})?
+DHCPD_REQUEST %{DHCPD_PREFIX} for %{IP:client_ip}\s*(\(%{IP:server_ip}\)\s*)?from %{MAC:client_mac} (\(%{HOSTNAME:client_hostname}\)\s*)?via %{HOSTNAME:interface}
+DHCPD_ACK %{DHCPD_PREFIX} to %{IP:client_ip} (\(%{MAC:client_mac}\)\s*)?via %{HOSTNAME:interface}
+DHCPD_RELEASE %{DHCPD_PREFIX} of %{IP:client_ip} from %{MAC:client_mac} (\(%{HOSTNAME:client_hostname}\)\s*)?via %{HOSTNAME:interface}
+DHCPD_INFORM %{DHCPD_PREFIX} from %{IP:client_ip} via %{IP:server_ip}
+DHCPD_OFFER %{DHCPD_PREFIX} on %{IP:client_ip} to %{MAC:client_mac} (\(%{HOSTNAME:client_hostname}\)\s*)?via %{HOSTNAME:interface}
+DHCPD_DISCOVER %{DHCPD_PREFIX} from %{MAC:client_mac} (\(%{HOSTNAME:client_hostname}\)\s*)?via %{HOSTNAME:interface}
+DHCPD_UPDATE_FAIL %{DHCPD_PREFIX} bind update on %{IP:update_failed_ip}
+DHCPD_DUPLICATE %{DHCPD_PREFIX} uid lease %{IP:client_ip} for client %{MAC:client_mac} is duplicate on %{IP:duplicate_network}/%{POSINT:cidr_prefix}
+DHCPD %{DHCPD_OFFER}|%{DHCPD_DISCOVER}|%{DHCPD_REQUEST}|%{DHCPD_INFORM}|%{DHCPD_ACK}|%{DHCPD_RELEASE}|%{DHCPD_UPDATE_FAIL}|%{DHCPD_DUPLICATE}

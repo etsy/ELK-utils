@@ -1,0 +1,394 @@
+{
+    "template": "logstash-*",
+    "settings" : {
+    <% if node[:hostname] =~ /develk[0-9]{2}/ -%>
+        "number_of_shards" : 4,
+        "number_of_replicas" : 1,
+    <% elsif node[:habitat] == "production" -%>
+        "number_of_shards" : 60,
+        "number_of_replicas" : 1,
+        "index.refresh_interval" : "5s",
+        "index.routing.allocation.total_shards_per_node" : 1,
+        "index.translog.flush_threshold_size" : "200mb",
+        "index.routing.allocation.include._host": "<%= node[:elasticsearch][:index_shard_allocations].join(',')  %>",
+    <% else -%>
+        "number_of_shards" : 1,
+        "number_of_replicas" : 0,
+    <% end -%>
+        "index.search.slowlog.threshold.query.warn": "100ms",
+        "index.search.slowlog.threshold.fetch.warn": "100ms",
+        "index.query.default_field" : "message",
+        "index.codec.bloom.load" : "true",
+        "analysis" : {
+            "char_filter" : {
+                "word_joiners" : {
+                    "type": "mapping",
+                    "mappings": [ ":=>\\u0020" ]
+                }
+            },
+            "filter" : {
+                "short_long_words" : {
+                    "min" : 3,
+                    "max" : 64,
+                    "type" : "length"
+                },
+                "sixtyfour_token_limit" : {
+                    "max_token_count": 192,
+                    "type": "limit"
+                }
+            },
+            "analyzer" : {
+                "logstashstd" : {
+                    "type" : "custom",
+                    "tokenizer" : "standard",
+                    "char_filter": [ "word_joiners" ],
+                    "filter" : [ "standard", "short_long_words", "stop", "lowercase", "sixtyfour_token_limit" ]
+                },
+                "logstash" : {
+                    "type" : "custom",
+                    "tokenizer" : "whitespace",
+                    "char_filter": [ "word_joiners" ],
+                    "filter" : [ "short_long_words", "stop", "lowercase", "sixtyfour_token_limit" ]
+                },
+                "logstashuri" : {
+                    "type" : "custom",
+                    "tokenizer" : "path_hierarchy",
+                    "filter" : [
+                        "lowercase",
+                        "unique"
+                    ]
+                }
+            }
+        }
+    },
+    "mappings": {
+        "_default_": {
+            "_all": { "enabled": false },
+            "_size": { "enabled": true },
+            "dynamic_templates": [
+                {
+                    "short_template" : {
+                        "match" : "s_*",
+                        "mapping" : { "type" : "short" }
+                    }
+                },
+                {
+                    "int_template" : {
+                        "match" : "i_*",
+                        "mapping" : { "type" : "long" }
+                    }
+                },
+                {
+                    "long_template" : {
+                        "match" : "l_*",
+                        "mapping" : { "type" : "long" }
+                    }
+                },
+                {
+                    "float_template" : {
+                        "match" : "f_*",
+                        "mapping" : { "type" : "double" }
+                    }
+                },
+                {
+                    "double_template" : {
+                        "match" : "d_*",
+                        "mapping" : { "type" : "double" }
+                    }
+                },
+                {
+                    "bool_template" : {
+                        "match" : "b_*",
+                        "mapping" : { "type" : "boolean" }
+                    }
+                },
+                {
+                    "string_template" : {
+                        "match" : "*",
+                        "match_mapping_type": "string",
+                        "mapping": { "type": "string", "index": "not_analyzed" }
+                    }
+                }
+            ],
+            "properties" : {
+                "message" : { "type" : "string", "index" : "analyzed", "omit_norms": true, "analyzer": "logstashstd", "fielddata": { "format": "disabled" } },
+                "type" : { "type" : "string", "index" : "not_analyzed", "fielddata": { "format": "doc_values" } },
+                "file" : { "type" : "string", "index" : "not_analyzed" },
+                "host" : { "type" : "string", "index" : "not_analyzed", "fielddata": { "format": "doc_values" } },
+                "tags": { "type": "string", "index" : "not_analyzed" },
+                "@timestamp" : { "type" : "date", "index" : "not_analyzed", "fielddata": { "format": "doc_values" } },
+                "event_timestamp" : { "type" : "date", "index" : "not_analyzed", "fielddata": { "format": "doc_values" } },
+                "index_timestamp" : { "type" : "date", "index" : "not_analyzed", "format" : "YYYY-MM-dd HH:mm:ss Z", "fielddata": { "format": "doc_values" } },
+                "logstash_timestamp" : { "type" : "date", "index" : "not_analyzed", "format" : "YYYY-MM-dd HH:mm:ss.SSS Z", "fielddata": { "format": "doc_values" } },
+                "ident" : { "type" : "string", "index" : "no" },
+                "auth" : { "type" : "string", "index" : "no" },
+                "true_client_ip" : { "type": "ip", "index" : "not_analyzed", "fielddata": { "format": "doc_values" } },
+                "X_Forwarded_For" : { "type": "ip", "index" : "not_analyzed" },
+                "response_bytes" : { "type": "long", "index" : "not_analyzed" },
+                "bytes_sent" : { "type": "long", "index": "not_analyzed" },
+                "http_version" : { "type": "float", "index" : "not_analyzed" },
+                "response" : { "type": "short", "index" : "not_analyzed", "fielddata": { "format": "doc_values" } },
+                "http_method" : { "type": "string", "index" : "not_analyzed", "fielddata": { "format": "doc_values" } },
+                "referrer_domain" : { "type": "string", "index" : "not_analyzed", "fielddata": { "format": "doc_values" } },
+                "php_memory_usage_bytes" : { "type": "long", "index" : "not_analyzed" },
+                "php_time_microsec" : { "type": "long", "index" : "not_analyzed", "fielddata": { "format": "doc_values" } },
+                "php_utime_microsec" : { "type": "long", "index" : "not_analyzed", "fielddata": { "format": "doc_values" } },
+                "php_stime_microsec" : { "type": "long", "index" : "not_analyzed", "fielddata": { "format": "doc_values" } },
+                "apache_time_microsec" : { "type": "long", "index" : "not_analyzed", "fielddata": { "format": "doc_values" } },
+                "nginx_time_sec" : { "type": "double", "index" : "not_analyzed" },
+                "is_ssl" : { "type": "byte", "index" : "not_analyzed" },
+                "request_uri" : { "type" : "multi_field",
+                    "fields" : {
+                        "request_uri" : { "type" : "string", "index": "not_analyzed", "fielddata": { "format": "doc_values" } },
+                        "raw" : { "type" : "string", "index": "not_analyzed", "fielddata": { "format": "doc_values" } }
+                    }
+                },
+                "user_agent" : { "type" : "multi_field",
+                    "fields" : {
+                        "user_agent" : { "type" : "string", "index": "analyzed", "analyzer": "logstash", "fielddata": { "format": "disabled" } },
+                        "raw" : { "type" : "string", "index": "not_analyzed", "fielddata": { "format": "doc_values" } }
+                    }
+                },
+                "referrer" : { "type" : "multi_field",
+                    "fields" : {
+                        "referrer" : { "type" : "string", "index": "analyzed", "analyzer": "logstash", "fielddata": { "format": "disabled" } },
+                        "raw" : { "type" : "string", "index": "not_analyzed", "fielddata": { "format": "doc_values" } }
+                    }
+                },
+                "cdn_provider" : { "type" : "string", "index": "not_analyzed", "fielddata": { "format": "doc_values" } },
+                "log_udid" : { "type" : "string", "index": "not_analyzed", "fielddata": { "format": "doc_values" } },
+                "esindex" : { "type" : "string", "index" : "no" },
+                "AL" : { "type" : "string", "index" : "no" },
+                "geoip" : { "type" : "object", "dynamic": true, "path": "full",
+                    "properties" : {
+                        "country_name" : { "type" : "string", "index": "not_analyzed", "fielddata": { "format": "doc_values" } },
+                        "location" : { "type": "geo_point" }
+                    }
+                },
+                "logdata" : { "dynamic": true, "path": "full",
+                    "properties" : {
+                        "shop_id" : { "type": "string", "index": "not_analyzed" },
+                        "bytes_sent" : { "type": "long", "index": "not_analyzed" },
+                        "count" : { "type": "long", "index": "not_analyzed" },
+                        "delta_abs" : { "type": "long", "index": "not_analyzed" },
+                        "delta_raw" : { "type": "long", "index": "not_analyzed" },
+                        "source_bytes" : { "type": "long", "index": "not_analyzed" },
+                        "source_chars" : { "type": "long", "index": "not_analyzed" },
+                        "result_bytes" : { "type": "long", "index": "not_analyzed" },
+                        "result_chars" : { "type": "long", "index": "not_analyzed" },
+                        "processed": { "type": "long", "index": "not_analyzed" },
+                        "queue": { "type": "long", "index": "not_analyzed" },
+                        "records_count": { "type": "long", "index": "not_analyzed" },
+                        "execution_time": { "type": "float", "index": "not_analyzed" },
+                        "execTime" : { "type": "integer", "index": "not_analyzed" },
+                        "exec_time_secs": { "type": "float", "index": "not_analyzed" },
+                        "latency": { "type": "double", "index": "not_analyzed" },
+                        "method_name" : { "type": "string", "index" : "not_analyzed", "fielddata": { "format": "doc_values" } },
+                        "script_filename" : { "type": "string", "index" : "not_analyzed", "fielddata": { "format": "doc_values" } },
+                        "userAgent" : { "type": "string", "index" : "not_analyzed", "fielddata": { "format": "doc_values" } },
+                        "new_field_name" : { "type": "string", "index" : "not_analyzed", "fielddata": { "format": "doc_values" } },
+                        "client_message" : { "type": "string", "index" : "not_analyzed", "fielddata": { "format": "doc_values" } },
+                        "referrer" : { "type": "string", "index" : "not_analyzed", "fielddata": { "format": "doc_values" } },
+                        "receipt_id" : { "type": "string", "index" : "not_analyzed", "fielddata": { "format": "doc_values" } },
+                        "send_status" : { "type": "string", "index" : "not_analyzed", "fielddata": { "format": "doc_values" } },
+                        "response_body" : { "type": "string", "index" : "not_analyzed", "fielddata": { "format": "doc_values" } },
+                        "notification_type" : { "type": "string", "index" : "not_analyzed", "fielddata": { "format": "doc_values" } },
+                        "push_notification_type" : { "type": "string", "index" : "not_analyzed", "fielddata": { "format": "doc_values" } },
+                        "cost" : { "type": "string", "index" : "not_analyzed", "fielddata": { "format": "doc_values" } },
+                        "provider" : { "type": "string", "index" : "not_analyzed", "fielddata": { "format": "doc_values" } },
+                        "user_id" : { "type": "string", "index" : "not_analyzed", "fielddata": { "format": "doc_values" } }
+                    }
+                },
+                "statsd_keyname": { "type" : "string", "index" : "not_analyzed" },
+                "statsd_count": { "type" : "long", "index" : "not_analyzed" },
+                "took_millis": { "type" : "long", "index" : "not_analyzed" },
+                "runTime": { "type" : "float", "index" : "not_analyzed" },
+                "to_domain" : { "type": "string", "index" : "not_analyzed", "fielddata": { "format": "doc_values" } },
+                "binding" : { "type": "string", "index" : "not_analyzed", "fielddata": { "format": "doc_values" } },
+                "log_level" : { "type": "string", "index" : "not_analyzed", "fielddata": { "format": "doc_values" } },
+                "nagios_epoch" : { "type": "string", "index" : "not_analyzed", "fielddata": { "format": "doc_values" } }
+            }
+        },
+        "search_mixer_log": {
+            "_all": { "enabled": false },
+            "_size": { "enabled": true },
+            "dynamic_templates": [
+                {
+                    "long_template" : {
+                        "match" : "l_*",
+                        "mapping" : { "type" : "long", "index" : "not_analyzed" }
+                    }
+                },
+                {
+                    "double_template" : {
+                        "match" : "d_*",
+                        "mapping" : { "type" : "double", "index" : "not_analyzed" }
+                    }
+                },
+                {
+                    "bool_template" : {
+                        "match" : "b_*",
+                        "mapping" : { "type" : "boolean", "index" : "not_analyzed" }
+                    }
+                },
+                {
+                    "string_template" : {
+                        "match" : "*",
+                        "mapping": { "type": "string", "index": "not_analyzed" },
+                        "match_mapping_type" : "string"
+                    }
+                }
+            ],
+            "properties" : {
+                "logdata" : { "type" : "object", "dynamic" : true, "path": "full",
+                    "properties" : {
+                        "diversity_blockLimit" : { "type": "integer", "index": "not_analyzed" },
+                        "diversity_blockSize" : { "type": "integer", "index": "not_analyzed" },
+                        "diversity_blockSizes" : { "type": "integer", "index": "not_analyzed" },
+                        "diversity_progressive_maxWindow" : { "type": "integer", "index": "not_analyzed" },
+                        "diversity_progressive_measurementWindow" : { "type": "integer", "index": "not_analyzed" },
+                        "diversity_progressive_targetMaxShare" : { "type": "float", "index": "not_analyzed" },
+                        "diversity_scoreThreshold" : { "type": "float", "index": "not_analyzed" },
+                        "diversity_window" : { "type": "integer", "index": "not_analyzed" },
+                        "explain" : { "type": "boolean", "index": "not_analyzed" },
+                        "facet" : { "type": "boolean", "index": "not_analyzed" },
+                        "fieldValueCacheHits" : { "type": "integer", "index": "not_analyzed" },
+                        "fieldValueCacheMisses" : { "type": "integer", "index": "not_analyzed" },
+                        "filterCacheHits" : { "type": "integer", "index": "not_analyzed" },
+                        "filterCacheMisses" : { "type": "integer", "index": "not_analyzed" },
+                        "gcct" : { "type": "integer", "index": "not_analyzed" },
+                        "gct" : { "type": "integer", "index": "not_analyzed" },
+                        "limit" : { "type": "integer", "index": "not_analyzed" },
+                        "listingQualityScorePercentage" : { "type": "float", "index": "not_analyzed" },
+                        "offset" : { "type": "integer", "index": "not_analyzed" },
+                        "queryResultCacheHits" : { "type": "integer", "index": "not_analyzed" },
+                        "queryResultCacheMisses" : { "type": "integer", "index": "not_analyzed" },
+                        "results" : { "type": "integer", "index": "not_analyzed" },
+                        "secondarySortOrder" : { "type": "string", "index": "not_analyzed" },
+                        "shardCount" : { "type": "integer", "index": "not_analyzed" },
+                        "shardTimeAvg" : { "type": "float", "index": "not_analyzed" },
+                        "shardTimeMax" : { "type": "integer", "index": "not_analyzed" },
+                        "shouldDampenTimeBoost" : { "type": "boolean", "index": "not_analyzed" },
+                        "shouldReturnShopIds" : { "type": "boolean", "index": "not_analyzed" },
+                        "shouldUseMultiplicativeRecency" : { "type": "boolean", "index": "not_analyzed" },
+                        "solrTime" : { "type": "integer", "index": "not_analyzed" },
+                        "solr_uniq" : { "type": "float", "index": "not_analyzed" },
+                        "sortOrder" : { "type": "string", "index": "not_analyzed" },
+                        "staleBy" : { "type": "integer", "index": "not_analyzed" },
+                        "timeAllowedMs" : { "type": "integer", "index": "not_analyzed" },
+                        "timeBoost" : { "type": "float", "index": "not_analyzed" },
+                        "topLevelCacheHit" : { "type": "boolean", "index": "not_analyzed" },
+                        "uniq" : { "type": "float", "index": "not_analyzed" },
+                        "unique_listing_ids" : { "type": "integer", "index": "not_analyzed" },
+                        "unique_shop_ids" : { "type": "integer", "index": "not_analyzed" },
+                        "useAdsFilter" : { "type": "boolean", "index": "not_analyzed" },
+                        "wc" : { "type": "integer", "index": "not_analyzed" }
+                    }
+                }
+            }
+        },
+        "search_solr_log": {
+            "_all": { "enabled": false },
+            "_size": { "enabled": true },
+            "dynamic_templates": [
+                {
+                    "long_template" : {
+                        "match" : "l_*",
+                        "mapping" : { "type" : "long", "index" : "not_analyzed" }
+                    }
+                },
+                {
+                    "double_template" : {
+                        "match" : "d_*",
+                        "mapping" : { "type" : "double", "index" : "not_analyzed" }
+                    }
+                },
+                {
+                    "bool_template" : {
+                        "match" : "b_*",
+                        "mapping" : { "type" : "boolean", "index" : "not_analyzed" }
+                    }
+                },
+                {
+                    "string_template" : {
+                        "match" : "*",
+                        "mapping": { "type": "string", "index": "not_analyzed" },
+                        "match_mapping_type" : "string"
+                    }
+                }
+            ],
+            "properties": {
+                "logdata" : { "type" : "object", "dynamic" : true, "path": "full",
+                    "properties" : {
+                        "hits": { "type": "integer", "index": "not_analyzed" },
+                        "status": { "type": "integer", "index": "not_analyzed" },
+                        "QTime": { "type": "integer", "index": "not_analyzed" },
+                        "start": { "type": "integer", "index": "not_analyzed" },
+                        "rows": { "type": "integer", "index": "not_analyzed" },
+                        "distrib": { "type": "boolean", "index": "not_analyzed" },
+                        "distrib.singlePass": { "type": "boolean", "index": "not_analyzed" },
+                        "facet": { "type": "boolean", "index": "not_analyzed" },
+                        "fsv": { "type": "boolean", "index": "not_analyzed" },
+                        "isShard": { "type": "boolean", "index": "not_analyzed" },
+                        "ps": { "type": "integer", "index": "not_analyzed" },
+                        "qs": { "type": "integer", "index": "not_analyzed" },
+                        "shards.info": { "type": "boolean", "index": "not_analyzed" },
+                        "tie": { "type": "float", "index": "not_analyzed" },
+                        "timeAllowed": { "type": "integer", "index": "not_analyzed" },
+                        "fullPhraseMatching": { "type": "boolean", "index": "not_analyzed" },
+                        "listingQualityScorePercentage": { "type": "float", "index": "not_analyzed" },
+                        "recencyBoost": { "type": "float", "index": "not_analyzed" },
+                        "useMultiplicativeRecency": { "type": "boolean", "index": "not_analyzed" },
+                        "useRecipientRewrite": { "type": "boolean", "index": "not_analyzed" }
+                    }
+                }
+            }
+        },
+        "cross_stitch_span_log": {
+            "dynamic_templates": [
+                {
+                    "cs_span_binary_annotations": {
+                        "path_match": "span.binary_annotations.*",
+                        "match_mapping_type": "string",
+                        "mapping": {
+                            "type": "string",
+                            "analyzer": "whitespace"
+                        }
+                    }
+                }
+            ],
+            "properties": {
+                "span": {
+                    "type": "object",
+                    "dynamic": false,
+                    "properties": {
+                        "type": { "type": "string", "index": "not_analyzed", "fielddata": { "format": "doc_values" } },
+                        "span_id": { "type": "string", "index": "not_analyzed", "fielddata": { "format": "doc_values" } },
+                        "parent_id": { "type": "string", "index": "not_analyzed", "fielddata": { "format": "doc_values" } },
+                        "root_id": { "type": "string", "index": "not_analyzed", "fielddata": { "format": "doc_values" } },
+                        "name": { "type": "string", "index": "not_analyzed", "fielddata": { "format": "doc_values" } },
+                        "endpoint": { "type": "string", "index": "not_analyzed", "fielddata": { "format": "doc_values" } },
+                        "service": { "type": "string", "index": "not_analyzed", "fielddata": { "format": "doc_values" } },
+                        "debug": { "type": "boolean", "null_value": false, "fielddata": { "format": "doc_values" } },
+                        "annotations": { "type": "object", "dynamic": false,
+                            "properties": {
+                                "timestamp": { "type": "long", "fielddata": { "format": "doc_values" } },
+                                "value": { "type": "string", "analyzer": "whitespace" },
+                                "duration": { "type": "long", "fielddata": { "format": "doc_values" } },
+                                "endpoint": { "type": "string", "index": "not_analyzed", "fielddata": { "format": "doc_values" } }
+                            }
+                        },
+                        "binary_annotations": { "type": "object", "dynamic": true,
+                            "properties": {
+                                "db.params": { "type": "string", "analyzer": "whitespace" },
+                                "endpoint": { "type": "string", "index": "not_analyzed", "fielddata": { "format": "doc_values" } },
+                                "key": { "type": "string", "analyzer": "whitespace" },
+                                "mc.keys": { "type": "string", "index": "not_analyzed" }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

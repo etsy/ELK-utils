@@ -1,0 +1,30 @@
+description "Logstash"
+author "Chef"
+
+start on (filesystem and net-device-up)
+stop on runlevel [!2345]
+
+respawn
+respawn limit 5 30
+limit nofile 65550 65550
+
+chdir <%= node[:logstash][:server][:base_dir] %>
+expect fork
+
+script
+  export LS_HOME="<%= node[:logstash][:server][:base_dir] %>"
+  export HOME=$LS_HOME
+  export LS_HEAP_SIZE="<%= node[:logstash][:server][:ls_mem] %>"
+
+  export JAVA_HOME=/usr/java/jdk7
+  export JAVACMD=$JAVA_HOME/bin/java
+  export GC_OPTS="<%= node[:logstash][:server][:gc_opts] %> -XX:+UseCompressedOops -Xms<%= node[:logstash][:server][:ls_mem] %>"
+  export JAVA_OPTS="-server $JAVA_MEM_OPTS $GC_OPTS"
+
+  export DAEMON=/opt/logstash/bin/logstash
+  export DAEMON_OPTS="agent -f /etc/logstash/logstash.conf -w <%= node[:logstash][:server][:worker_limit] %> --pluginpath <%= node[:logstash][:server][:base_dir] %>/plugins"
+
+  exec $DAEMON $DAEMON_OPTS 2>&1 | logger -p user.info -t logstash
+end script
+
+emits logstash-server-running

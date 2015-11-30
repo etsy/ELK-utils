@@ -1,0 +1,21 @@
+  mutate { add_field => [ "index_timestamp", "%{+YYYY-MM-dd HH:mm:ss Z}" ] }
+  mutate { add_field => [ "logstash_timestamp", "%{+YYYY-MM-dd HH:mm:ss.SSS Z}" ] }
+
+  ## Command Execution Logging.
+  if [type] == "cmdaudit_log" {
+    drop { }
+    
+  ## KIBANA LOGS
+  } else if [type] in ["kibana_error_log"] {
+    ruby { code => "event['message'] = event['message'].slice!(0,10240)" }
+    grok { patterns_dir => "/etc/logstash/conf.d"
+        match => [ "message", "%{COMMON_APACHE_ERROR}" ] }
+  } else if [type] == "kibana_access_log" {
+    grok { patterns_dir => "/etc/logstash/conf.d" 
+        match => [ "message", "%{COMMON_APACHE_ACCESS}" ] }
+  }
+
+  # Some fields we like everywhere
+  mutate { add_field => [ "logstash_router", "<%= node[:fqdn] %>" ] }
+  mutate { add_field => [ "esindex", "logstash-%{+YYYY.MM.dd}" ] } 
+

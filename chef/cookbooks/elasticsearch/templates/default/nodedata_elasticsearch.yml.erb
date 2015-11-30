@@ -1,0 +1,102 @@
+######################### ElasticSearch Configuration  ########################
+
+# This file is managed by Chef, do not edit manually, your changes *will* be overwritten!
+#
+# Please see the source file for context and more information:
+#
+# https://github.com/elasticsearch/elasticsearch/blob/master/config/elasticsearch.yml
+#
+
+################################### Cluster ###################################
+
+cluster.name: <%= node[:elasticsearch][:cluster_name] %>
+
+#################################### Node #####################################
+
+node.name: <%= node[:elasticsearch][:node_name] %><%= @instance %>
+node.local: <%= node[:elasticsearch][:is_local] %>
+node.data: <%= node[:elasticsearch][:is_data] %>
+node.master: <%= node[:elasticsearch][:is_master] %>
+# node.max_local_storage_nodes: <%= @max_nodes %>
+http.enabled: <%= node[:elasticsearch][:http_enabled] %>
+http.cors.enabled: true
+http.compression: true
+transport.tcp.compress: true
+
+#################################### Index ####################################
+
+index.mapper.dynamic: true
+action.auto_create_index: true
+action.disable_delete_all_indices: true
+
+#################################### Paths ####################################
+
+path.conf: <%= node[:elasticsearch][:conf_dir] %>
+path.data: <%= node[:elasticsearch][:data_path] %>
+
+bootstrap.mlockall: true
+discovery.zen.minimum_master_nodes: <%= node[:elasticsearch][:minimum_master_nodes] %>
+discovery.zen.ping.multicast.enabled: false
+cloud.node.auto_attributes: true
+
+jmx.create_connector: true
+jmx.port: 9400-9500
+jmx.domain: elasticsearch
+
+<% if node[:elasticsearch][:bind_host] %>
+network.bind_host: <%= node[:elasticsearch][:bind_host] %>
+<% end %>
+
+<% if node[:elasticsearch][:master_nodes] %>
+cluster.routing.allocation.node_initial_primaries_recoveries: 20
+cluster.routing.allocation.node_concurrent_recoveries: 1
+cluster.routing.allocation.cluster_concurrent_rebalance: 1
+cluster.routing.allocation.balance.primary: 0.10
+cluster.routing.allocation.disk.threshold_enabled: true
+cluster.routing.allocation.disk.watermark.low: 0.93
+cluster.routing.allocation.disk.watermark.high: 0.95
+cluster.routing.allocation.same_shard.host: true
+
+discovery.zen.ping.unicast.hosts: <%= node[:elasticsearch][:master_nodes] %>
+# I'd like to put an intelligent comment here about why I'm uncommenting
+# the discovery.zen.publish_timeout option, but I'm not totally clear, except
+# to say that consensus in #logstash at the moment is that it will make some
+# tasks asynchronous and speed up the recovery of the ES cluster.
+discovery.zen.publish_timeout: 0
+gateway.expected_master_nodes: <%= node[:elasticsearch][:expected_master_nodes] %>
+gateway.expected_data_nodes: <%= node[:elasticsearch][:expected_data_nodes] %>
+gateway.recover_after_time: <%= node[:elasticsearch][:recover_after_time] %>
+
+#index.merge.scheduler.max_thread_count: <%= node[:elasticsearch][:max_thread_count] %>
+
+indices.recovery.compress: true
+indices.recovery.max_bytes_per_sec: 200mb
+indices.recovery.concurrent_streams: 3
+<% end %>
+
+indices.fielddata.cache.size: 30%
+#indices.cache.filter.size: 10%
+indices.store.throttle.type: none
+#index.index_concurrency: 56
+#index.refresh_interval: 30s
+#index.translog.flush_threshold_ops: 100000
+<% if node[:elasticsearch][:cluster_name].eql? "analytics" %>
+indices.memory.index_buffer_size: 10%
+<% else %>
+indices.memory.index_buffer_size: 30%
+<% end %>
+#threadpool.index.size: 30
+threadpool.bulk.queue: 500
+#threadpool.merge.size: 20
+
+<% if File.directory?('/usr/share/elasticsearch/plugins/plugin-graphite') && node[:elasticsearch][:graphite_host] %>
+################################### Graphite ###################################
+metrics.graphite.host: <%= node[:elasticsearch][:graphite_host] %>
+metrics.graphite.port: 2003
+metrics.graphite.prefix: elasticsearch.<%= node[:elasticsearch][:cluster_name] %>.<%= node[:fqdn].gsub(".example.com","").gsub('.','_') %>
+<% end %>
+
+<%# The SoxELK cluster uses ES Shield. Add some config for that. %>
+<% if node[:elasticsearch][:cluster_name].eql? "soxelk" %>
+<%= render "partials/shield.erb" %>
+<% end %>

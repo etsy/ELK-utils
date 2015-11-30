@@ -1,0 +1,44 @@
+# GROK Patterns for pfSense 2.2 Logging Format
+# 
+# Created 27 Jan 2015 by J. Pisano (Handles TCP, UDP, and ICMP log entries)
+# Edited 14 Feb 2015 by E. Paul
+#
+# Usage: Use with following GROK match pattern
+#
+# %{LOG_DATA}%{IP_SPECIFIC_DATA}%{IP_DATA}%{PROTOCOL_DATA}
+
+LOG_DATA (%{INT:rule_number}),(%{INT:sub_rule}),,(%{INT:tracker}),(%{WORD:interface}),(%{WORD:reason}),(%{WORD:firewall_action}),(%{WORD:direction}),(%{INT:ip_ver}),
+
+IP_SPECIFIC_DATA (%{IPv4_SPECIFIC_DATA}|%{IPv6_SPECIFIC_DATA})
+
+IPv4_SPECIFIC_DATA (%{BASE16NUM:tos}),,(%{INT:ttl}),(%{INT:id}),(%{INT:offset}),(%{WORD:flags}),(%{INT:proto_id}),(%{WORD:proto}),
+
+IPv6_SPECIFIC_DATA (%{BASE16NUM:class}),(%{DATA:flow_label}),(%{INT:hop_limit}),(%{WORD:proto}),(%{INT:proto_id}),
+
+IP_DATA (%{INT:length}),(%{IP:src_ip}),(%{IP:dst_ip}),
+
+PROTOCOL_DATA (%{TCP_DATA}|%{UDP_DATA}|%{ICMP_DATA})
+
+TCP_DATA (%{INT:src_port}),(%{INT:dst_port}),(%{INT:data_length}),(%{WORD:tcp_flags}),(%{INT:sequence_number}),(%{INT:ack_number}),(%{INT:tcp_window}),(%{DATA:urg_data}),(%{DATA:tcp_options})
+
+UDP_DATA (%{INT:src_port}),(%{INT:dst_port}),(%{INT:data_length})
+
+ICMP_DATA (%{ICMP_TYPE}%{ICMP_RESPONSE})
+
+ICMP_TYPE (?<icmp_type>(request|reply|unreachproto|unreachport|unreach|timeexceed|paramprob|redirect|maskreply|needfrag|tstamp|tstampreply)),
+
+ICMP_RESPONSE (%{ICMP_ECHO_REQ_REPLY}|%{ICMP_UNREACHPORT}| %{ICMP_UNREACHPROTO}|%{ICMP_UNREACHABLE}|%{ICMP_NEED_FLAG}|%{ICMP_TSTAMP}|%{ICMP_TSTAMP_REPLY})
+
+ICMP_ECHO_REQ_REPLY (%{INT:icmp_echo_id}),(%{INT:icmp_echo_sequence})
+
+ICMP_UNREACHPORT (%{IP:icmp_unreachport_dest_ip}),(%{WORD:icmp_unreachport_protocol}),(%{INT:icmp_unreachport_port})
+
+ICMP_UNREACHPROTO (%{IP:icmp_unreach_dest_ip}),(%{WORD:icmp_unreachproto_protocol})
+
+ICMP_UNREACHABLE (%{GREEDYDATA:icmp_unreachable})
+
+ICMP_NEED_FLAG (%{IP:icmp_need_flag_ip}),(%{INT:icmp_need_flag_mtu})
+
+ICMP_TSTAMP (%{INT:icmp_tstamp_id}),(%{INT:icmp_tstamp_sequence})
+
+ICMP_TSTAMP_REPLY (%{INT:icmp_tstamp_reply_id}),(%{INT:icmp_tstamp_reply_sequence}),(%{INT:icmp_tstamp_reply_otime}),(%{INT:icmp_tstamp_reply_rtime}),(%{INT:icmp_tstamp_reply_ttime})

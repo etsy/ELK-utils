@@ -1,0 +1,6 @@
+NODEJS_LOG_DATETIME %{MONTHDAY} %{MONTH} %{TIME}
+STATSD_TIMESTAMP %{MONTH} %{MONTHDAY} %{YEAR} %{TIME}
+STATSD_MESSAGE (?:%{STATSD_BADLINE}|%{GREEDYDATA})
+STATSD_BADLINE %{DATA:statsd_badmetric} in msg "%{DATA:statsd_metric_key}:%{DATA:statsd_metric_value}\|%{DATA:statsd_metric_type}(?:\|@%{DATA:statsd_metric_sampling})?"
+STATSD_LOG %{NODEJS_LOG_DATETIME:[@metadata][statsd_timestamp]} - %{LOGLEVEL:statsd_log_level}: %{DATA:statsd_error_type}: %{STATSD_MESSAGE:statsd_message}
+STATSD_TOPKEYS %{STATSD_TIMESTAMP:[@metadata][timestamp]} GMT\+0000 \(UTC\) count=%{NONNEGINT:statsd_count} key=%{GREEDYDATA:statsd_key}

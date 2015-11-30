@@ -1,0 +1,9 @@
+<%= render "partials/input/base.erb" %>
+
+  # Allow lumberjack input using the 'json' codec.
+  lumberjack {
+    'codec' => 'json'
+    'port' => '9992'
+    'ssl_certificate' => '/etc/pki/logstash/lumberjack_tms.crt'
+    'ssl_key' => '/etc/pki/logstash/lumberjack_tms.key'
+  }

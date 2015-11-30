@@ -1,0 +1,16 @@
+[Unit]
+Description=Logstash
+BindTo=network.target
+<% if @has_es %>
+Requires=elasticsearch1.service
+<% end %>
+
+[Install]
+WantedBy=multi-user.target
+
+[Service]
+Type=simple
+LimitNOFILE=65550
+WorkingDirectory=<%= node[:logstash][:server][:base_dir] %>
+EnvironmentFile=/etc/sysconfig/logstash
+ExecStart=/opt/logstash/bin/logstash $DAEMON_OPTS
