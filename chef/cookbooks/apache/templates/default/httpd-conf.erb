@@ -1,0 +1,526 @@
+<% httpd24 = node[:httpd][:version].start_with?('2.4') %>
+ServerTokens Prod
+
+#
+# ServerRoot: The top of the directory tree under which the server's
+# configuration, error, and log files are kept.
+#
+# NOTE!  If you intend to place this on an NFS (or otherwise network)
+# mounted filesystem then please read the LockFile documentation
+# (available at <URL:http://httpd.apache.org/docs/2.2/mod/mpm_common.html#lockfile>);
+# you will save yourself a lot of trouble.
+#
+# Do NOT add a slash at the end of the directory path.
+#
+ServerRoot "/etc/httpd"
+
+#
+# PidFile: The file in which the server should record its process
+# identification number when it starts.
+#
+PidFile run/httpd.pid
+
+#
+# Timeout: The number of seconds before receives and sends time out.
+#
+Timeout <%= @timeout %>
+
+#
+# KeepAlive: Whether or not to allow persistent connections (more than
+# one request per connection). Set to "Off" to deactivate.
+#
+<% if @keepalive %>
+KeepAlive On
+<% else %>
+KeepAlive Off
+<% end %>
+
+#
+# MaxKeepAliveRequests: The maximum number of requests to allow
+# during a persistent connection. Set to 0 to allow an unlimited amount.
+# We recommend you leave this number high, for maximum performance.
+#
+MaxKeepAliveRequests <%= @keepalive_max_requests %>
+
+#
+# KeepAliveTimeout: Number of seconds to wait for the next request from the
+# same client on the same connection.
+#
+KeepAliveTimeout <%= @keepalive_timeout %>
+
+Listen 80
+
+#
+# Dynamic Shared Object (DSO) Support
+#
+# To be able to use the functionality of a module which was built as a DSO you
+# have to place corresponding `LoadModule' lines at this location so the
+# directives contained in it are actually available _before_ they are used.
+# Statically compiled modules (those listed by `httpd -l') do not need
+# to be loaded here.
+#
+# Example:
+# LoadModule foo_module modules/mod_foo.so
+#
+<% if httpd24 -%>
+# For Apache 2.4, there is a new modules configuration directory to include
+Include conf.modules.d/*.conf
+<% else -%>
+LoadModule auth_basic_module modules/mod_auth_basic.so
+LoadModule auth_digest_module modules/mod_auth_digest.so
+LoadModule authn_file_module modules/mod_authn_file.so
+#LoadModule authn_alias_module modules/mod_authn_alias.so
+#LoadModule authn_anon_module modules/mod_authn_anon.so
+#LoadModule authn_dbm_module modules/mod_authn_dbm.so
+#LoadModule authn_default_module modules/mod_authn_default.so
+LoadModule authz_host_module modules/mod_authz_host.so
+LoadModule authz_user_module modules/mod_authz_user.so
+LoadModule authz_owner_module modules/mod_authz_owner.so
+#LoadModule authz_groupfile_module modules/mod_authz_groupfile.so
+#LoadModule authz_dbm_module modules/mod_authz_dbm.so
+LoadModule authz_default_module modules/mod_authz_default.so
+
+LoadModule include_module modules/mod_include.so
+LoadModule log_config_module modules/mod_log_config.so
+LoadModule logio_module modules/mod_logio.so
+LoadModule env_module modules/mod_env.so
+LoadModule ext_filter_module modules/mod_ext_filter.so
+LoadModule mime_magic_module modules/mod_mime_magic.so
+LoadModule expires_module modules/mod_expires.so
+LoadModule deflate_module modules/mod_deflate.so
+LoadModule headers_module modules/mod_headers.so
+LoadModule usertrack_module modules/mod_usertrack.so
+LoadModule setenvif_module modules/mod_setenvif.so
+LoadModule mime_module modules/mod_mime.so
+LoadModule status_module modules/mod_status.so
+LoadModule vhost_alias_module modules/mod_vhost_alias.so
+LoadModule negotiation_module modules/mod_negotiation.so
+LoadModule dir_module modules/mod_dir.so
+LoadModule alias_module modules/mod_alias.so
+LoadModule rewrite_module modules/mod_rewrite.so
+<% if @enable_proxy %>
+LoadModule proxy_module modules/mod_proxy.so
+LoadModule proxy_balancer_module modules/mod_proxy_balancer.so
+LoadModule proxy_ftp_module modules/mod_proxy_ftp.so
+LoadModule proxy_http_module modules/mod_proxy_http.so
+LoadModule proxy_connect_module modules/mod_proxy_connect.so
+<% else %>
+#LoadModule proxy_module modules/mod_proxy.so
+#LoadModule proxy_balancer_module modules/mod_proxy_balancer.so
+#LoadModule proxy_ftp_module modules/mod_proxy_ftp.so
+#LoadModule proxy_http_module modules/mod_proxy_http.so
+#LoadModule proxy_connect_module modules/mod_proxy_connect.so
+<% end %>
+#LoadModule cache_module modules/mod_cache.so
+#LoadModule disk_cache_module modules/mod_disk_cache.so
+#LoadModule file_cache_module modules/mod_file_cache.so
+#LoadModule mem_cache_module modules/mod_mem_cache.so
+<% end -%>
+
+##
+## Server-Pool Size Regulation (MPM specific)
+##
+
+# prefork MPM
+# StartServers: number of server processes to start
+# MinSpareServers: minimum number of server processes which are kept spare
+# MaxSpareServers: maximum number of server processes which are kept spare
+# ServerLimit: maximum value for MaxClients for the lifetime of the server
+# MaxClients: maximum number of server processes allowed to start
+# MaxRequestsPerChild: maximum number of requests a server process serves
+<% if httpd24 -%>
+<IfModule mpm_prefork_module>
+<% else -%>
+<IfModule prefork.c>
+<% end -%>
+StartServers       <%= @start_servers %>
+MinSpareServers    <%= @min_spare_servers %>
+MaxSpareServers    <%= @max_spare_servers %>
+ServerLimit        <%= @server_limit %>
+<% if httpd24 -%>
+# MaxRequestWorkers used to be called MaxClients in Apache pre 2.4
+MaxRequestWorkers  <%= @max_clients %>
+# MaxConnectionsPerChild used to be called MaxRequestsPerChild in Apache pre 2.4
+MaxConnectionsPerChild  <%= @max_requests_per_child %>
+<% else -%>
+MaxClients         <%= @max_clients %>
+MaxRequestsPerChild  <%= @max_requests_per_child %>
+<% end -%>
+</IfModule>
+
+#
+# Load config files from the config directory "/etc/httpd/conf.d".
+#
+Include conf.d/*.conf
+
+#
+# ExtendedStatus controls whether Apache will generate "full" status
+# information (ExtendedStatus On) or just basic information (ExtendedStatus
+# Off) when the "server-status" handler is called. The default is Off.
+#
+ExtendedStatus On
+
+#
+# If you wish httpd to run as a different user or group, you must run
+# httpd as root initially and it will switch.
+#
+User apache
+Group apache
+
+### Section 2: 'Main' server configuration
+ServerAdmin admin@example.com
+
+ServerName <%= @fqdn + ":" + @port %>
+
+#
+# UseCanonicalName: Determines how Apache constructs self-referencing
+# URLs and the SERVER_NAME and SERVER_PORT variables.
+# When set "Off", Apache will use the Hostname and Port supplied
+# by the client.  When set "On", Apache will use the value of the
+# ServerName directive.
+#
+UseCanonicalName Off
+
+#
+# Turn on core dumps by stating what directory they should live in
+#
+<% if @coredumps %>
+  CoreDumpDirectory /var/apachecoredumps
+<% end %>
+
+#
+# Disable Trace
+#
+TraceEnable off
+
+#
+# DocumentRoot: The directory out of which you will serve your
+# documents. By default, all requests are taken from this directory, but
+# symbolic links and aliases may be used to point to other locations.
+#
+DocumentRoot "/var/www"
+
+#
+# Each directory to which Apache has access can be configured with respect
+# to which services and features are allowed and/or disabled in that
+# directory (and its subdirectories).
+#
+# First, we configure the "default" to be a very restrictive set of
+# features.
+#
+<Directory />
+    Options FollowSymLinks
+    AllowOverride None
+</Directory>
+
+#
+# Note that from this point forward you must specifically allow
+# particular features to be enabled - so if something's not working as
+# you might expect, make sure that you have specifically enabled it
+# below.
+#
+
+#
+# This should be changed to whatever you set DocumentRoot to.
+#
+<Directory "/var/www">
+
+#
+# Possible values for the Options directive are "None", "All",
+# or any combination of:
+#   Indexes Includes FollowSymLinks SymLinksifOwnerMatch ExecCGI MultiViews
+#
+# Note that "MultiViews" must be named *explicitly* --- "Options All"
+# doesn't give it to you.
+#
+# The Options directive is both complicated and important.  Please see
+# http://httpd.apache.org/docs/2.2/mod/core.html#options
+# for more information.
+#
+    Options -Indexes +FollowSymLinks
+
+#
+# AllowOverride controls what directives may be placed in .htaccess files.
+# It can be "All", "None", or any combination of the keywords:
+#   Options FileInfo AuthConfig Limit
+#
+    AllowOverride None
+
+#
+# Controls who can get stuff from this server.
+#
+    <% if httpd24 -%>
+    Require all granted
+    <% else -%>
+    Order allow,deny
+    Allow from all
+    <% end -%>
+
+</Directory>
+
+# DirectoryIndex: sets the file that Apache will serve if a directory
+# is requested.
+#
+# The index.html.var file (a type-map) is used to deliver content-
+# negotiated documents.  The MultiViews Option can be used for the
+# same purpose, but it is much slower.
+#
+DirectoryIndex index.html index.html.var
+
+#
+# AccessFileName: The name of the file to look for in each directory
+# for additional configuration directives.  See also the AllowOverride
+# directive.
+#
+AccessFileName .htaccess
+
+#
+# The following lines prevent .htaccess and .htpasswd files from being
+# viewed by Web clients.
+#
+<% if httpd24 -%>
+<Files ".ht*">
+    Require all denied
+</Files>
+<% else -%>
+<Files ~ "^\.ht">
+    Order allow,deny
+    Deny from all
+</Files>
+<% end -%>
+
+#
+# TypesConfig describes where the mime.types file (or equivalent) is
+# to be found.
+#
+TypesConfig /etc/mime.types
+
+<% if !httpd24 -%>
+DefaultType text/plain
+<% end -%>
+
+#
+# The mod_mime_magic module allows the server to use various hints from the
+# contents of the file itself to determine its type.  The MIMEMagicFile
+# directive tells the module where the hint definitions are located.
+#
+<% if httpd24 -%>
+<IfModule mime_magic_module>
+<% else -%>
+<IfModule mod_mime_magic.c>
+<% end -%>
+#   MIMEMagicFile /usr/share/magic.mime
+    MIMEMagicFile conf/magic
+</IfModule>
+
+HostnameLookups Off
+
+
+#
+# ErrorLog: The location of the error log file.
+# If you do not specify an ErrorLog directive within a <VirtualHost>
+# container, error messages relating to that virtual host will be
+# logged here.  If you *do* define an error logfile for a <VirtualHost>
+# container, that host's errors will be logged there and not here.
+#
+#ErrorLog logs/error_log
+ErrorLog /var/log/httpd/error_log
+
+<% if httpd24 -%>
+# Reproduce the httpd 2.2 error log format (as closely as possible)
+ErrorLogFormat "[%t] [%-m:%l] %7F: %E: [client\ %a] %M% ,\ referer\ %{Referer}i"
+
+<% end -%>
+#
+# LogLevel: Control the number of messages logged to the error_log.
+# Possible values include: debug, info, notice, warn, error, crit,
+# alert, emerg.
+#
+LogLevel warn
+
+#
+# The following directives define some format nicknames for use with
+# a CustomLog directive (see below).
+#
+# LogFormat "%{X-Forwarded-For}i %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-Agent}i\" %D" combined
+
+## log format for internal services
+LogFormat "%h %{X-Username}i %t \"%r\" \"%{User-Agent}i\" \"%{Accept-Language}i\" %>s %b \"%{Referer}i\"" internal
+
+## Original combined format
+LogFormat "%h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-Agent}i\"" origcombined
+
+# "combinedio" includes actual counts of actual bytes received (%I) and sent (%O); this
+# requires the mod_logio module to be loaded.
+#LogFormat "%h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-Agent}i\" %I %O" combinedio
+
+# For a single logfile with access, agent, and referer information
+# (Combined Logfile Format), use the following directive:
+#
+
+# Optionally add a line containing the server version and virtual host
+# name to server-generated pages (internal error documents, FTP directory
+# listings, mod_status and mod_info output etc., but not CGI generated
+# documents or custom error documents).
+# Set to "EMail" to also include a mailto: link to the ServerAdmin.
+# Set to one of:  On | Off | EMail
+#
+ServerSignature Off
+
+#
+# DefaultLanguage and AddLanguage allows you to specify the language of
+# a document. You can then use content negotiation to give a browser a
+# file in a language the user can understand.
+#
+# Specify a default language. This means that all data
+# going out without a specific language tag (see below) will
+# be marked with this one. You probably do NOT want to set
+# this unless you are sure it is correct for all cases.
+#
+# * It is generally better to not mark a page as
+# * being a certain language than marking it with the wrong
+# * language!
+#
+# DefaultLanguage nl
+#
+# Note 1: The suffix does not have to be the same as the language
+# keyword --- those with documents in Polish (whose net-standard
+# language code is pl) may wish to use "AddLanguage pl .po" to
+# avoid the ambiguity with the common suffix for perl scripts.
+#
+# Note 2: The example entries below illustrate that in some cases
+# the two character 'Language' abbreviation is not identical to
+# the two character 'Country' code for its country,
+# E.g. 'Danmark/dk' versus 'Danish/da'.
+#
+# Note 3: In the case of 'ltz' we violate the RFC by using a three char
+# specifier. There is 'work in progress' to fix this and get
+# the reference data for rfc1766 cleaned up.
+#
+# Catalan (ca) - Croatian (hr) - Czech (cs) - Danish (da) - Dutch (nl)
+# English (en) - Esperanto (eo) - Estonian (et) - French (fr) - German (de)
+# Greek-Modern (el) - Hebrew (he) - Italian (it) - Japanese (ja)
+# Korean (ko) - Luxembourgeois* (ltz) - Norwegian Nynorsk (nn)
+# Norwegian (no) - Polish (pl) - Portugese (pt)
+# Brazilian Portuguese (pt-BR) - Russian (ru) - Swedish (sv)
+# Simplified Chinese (zh-CN) - Spanish (es) - Traditional Chinese (zh-TW)
+#
+AddLanguage ca .ca
+AddLanguage cs .cz .cs
+AddLanguage da .dk
+AddLanguage de .de
+AddLanguage el .el
+AddLanguage en .en
+AddLanguage eo .eo
+AddLanguage es .es
+AddLanguage et .et
+AddLanguage fr .fr
+AddLanguage he .he
+AddLanguage hr .hr
+AddLanguage it .it
+AddLanguage ja .ja
+AddLanguage ko .ko
+AddLanguage ltz .ltz
+AddLanguage nl .nl
+AddLanguage nn .nn
+AddLanguage no .no
+AddLanguage pl .po
+AddLanguage pt .pt
+AddLanguage pt-BR .pt-br
+AddLanguage ru .ru
+AddLanguage sv .sv
+AddLanguage zh-CN .zh-cn
+AddLanguage zh-TW .zh-tw
+
+#
+# LanguagePriority allows you to give precedence to some languages
+# in case of a tie during content negotiation.
+#
+# Just list the languages in decreasing order of preference. We have
+# more or less alphabetized them here. You probably want to change this.
+#
+LanguagePriority en ca cs da de el eo es et fr he hr it ja ko ltz nl nn no pl pt pt-BR ru sv zh-CN zh-TW
+
+#
+# ForceLanguagePriority allows you to serve a result page rather than
+# MULTIPLE CHOICES (Prefer) [in case of a tie] or NOT ACCEPTABLE (Fallback)
+# [in case no accepted languages matched the available variants]
+#
+ForceLanguagePriority Prefer Fallback
+
+#
+# Specify a default charset for all content served; this enables
+# interpretation of all content as UTF-8 by default.  To use the
+# default browser choice (ISO-8859-1), or to allow the META tags
+# in HTML content to override this choice, comment out this
+# directive:
+#
+AddDefaultCharset UTF-8
+
+
+# If the AddEncoding directives above are commented-out, then you
+# probably should define those extensions to indicate media types:
+#
+AddType application/x-compress .Z
+AddType application/x-gzip .gz .tgz
+
+#
+#   MIME-types for downloading Certificates and CRLs
+#
+AddType application/x-x509-ca-cert .crt
+AddType application/x-pkcs7-crl    .crl
+
+#
+# For type maps (negotiated resources):
+# (This is enabled by default to allow the Apache "It Worked" page
+#  to be distributed in multiple languages.)
+#
+AddHandler type-map var
+
+#
+# Filters allow you to process content before it is sent to the client.
+#
+# To parse .shtml files for server-side includes (SSI):
+# (You will also need to add "Includes" to the "Options" directive.)
+#
+AddType text/html .shtml
+AddOutputFilter INCLUDES .shtml
+
+#
+# Customizable error responses come in three flavors:
+# 1) plain text 2) local redirects 3) external redirects
+#
+# Some examples:
+#ErrorDocument 500 "The server made a boo boo."
+#ErrorDocument 404 /missing.html
+#ErrorDocument 404 "/cgi-bin/missing_handler.pl"
+#ErrorDocument 402 http://www.example.com/subscription_info.html
+
+# The following directives modify normal HTTP response behavior to
+# handle known problems with browser implementations.
+#
+BrowserMatch "Mozilla/2" nokeepalive
+BrowserMatch "MSIE 4\.0b2;" nokeepalive downgrade-1.0 force-response-1.0
+BrowserMatch "RealPlayer 4\.0" force-response-1.0
+BrowserMatch "Java/1\.0" force-response-1.0
+BrowserMatch "JDK/1\.0" force-response-1.0
+BrowserMatch ".*" force-response-1.0
+
+#
+# The following directive disables redirects on non-GET requests for
+# a directory that does not include the trailing slash.  This fixes a
+# problem with Microsoft WebFolders which does not appropriately handle
+# redirects for folders with DAV methods.
+# Same deal with Apple's DAV filesystem and Gnome VFS support for DAV.
+#
+BrowserMatch "Microsoft Data Access Internet Publishing Provider" redirect-carefully
+BrowserMatch "MS FrontPage" redirect-carefully
+BrowserMatch "^WebDrive" redirect-carefully
+BrowserMatch "^WebDAVFS/1.[0123]" redirect-carefully
+BrowserMatch "^gnome-vfs/1.0" redirect-carefully
+BrowserMatch "^XML Spy" redirect-carefully
+BrowserMatch "^Dreamweaver-WebDAV-SCM1" redirect-carefully
+
+<% if !httpd24 -%>
+NameVirtualHost *:80
+<% end -%>

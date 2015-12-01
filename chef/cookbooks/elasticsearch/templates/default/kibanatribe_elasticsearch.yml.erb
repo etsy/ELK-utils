@@ -1,0 +1,62 @@
+######################### ElasticSearch Configuration  ########################
+
+# This file is managed by Chef, do not edit manually, your changes *will* be overwritten!
+#
+# Please see the source file for context and more information:
+#
+# https://github.com/elasticsearch/elasticsearch/blob/master/config/elasticsearch.yml
+#
+
+################################### Cluster ###################################
+
+tribe:
+    <% node[:elasticsearch][:kibanatribe].each do |tribe| %>
+    <%= tribe[:cluster_name] %>:
+        cluster.name: <%= tribe[:cluster_name] %>
+        discovery.zen.minimum_master_nodes: <%= tribe[:minimum_master_nodes] %>
+        discovery.zen.ping.multicast.enabled: false
+        discovery.zen.ping.unicast.hosts: <%= tribe[:master_nodes] %>
+        gateway.expected_master_nodes: <%= tribe[:expected_master_nodes] %>
+    <% end %>
+
+#################################### Node #####################################
+
+node.name: <%= node[:elasticsearch][:node_name] %><%= @instance %>
+node.local: <%= node[:elasticsearch][:is_local] %>
+node.data: <%= node[:elasticsearch][:is_data] %>
+node.master: <%= node[:elasticsearch][:is_master] %>
+http.enabled: <%= node[:elasticsearch][:http_enabled] %>
+http.cors.enabled: true
+http.compression: true
+transport.tcp.compress: true
+
+#################################### Index ####################################
+
+index.mapper.dynamic: true
+action.auto_create_index: true
+action.disable_delete_all_indices: true
+
+#################################### Paths ####################################
+
+path.conf: <%= node[:elasticsearch][:conf_dir] %>
+path.data: <%= node[:elasticsearch][:data_path] %>
+
+bootstrap.mlockall: true
+cloud.node.auto_attributes: true
+
+<% if node[:elasticsearch][:bind_host] %>
+network.bind_host: <%= node[:elasticsearch][:bind_host] %>
+<% end %>
+
+indices.fielddata.cache.size: 30%
+indices.store.throttle.type: none
+indices.memory.index_buffer_size: 30%
+threadpool.bulk.queue: 500
+
+<% if File.directory?('/usr/share/elasticsearch/plugins/plugin-graphite') && node[:elasticsearch][:graphite_host] %>
+################################### Graphite ###################################
+metrics.graphite.host: <%= node[:elasticsearch][:graphite_host] %>
+metrics.graphite.port: 2003
+metrics.graphite.prefix: elasticsearch.<%= node[:elasticsearch][:cluster_name] %>.<%= node[:fqdn].gsub(".example.com","").gsub('.','_') %>
+<% end %>
+

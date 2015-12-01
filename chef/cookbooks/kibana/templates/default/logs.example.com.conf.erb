@@ -1,0 +1,65 @@
+LoadModule proxy_module modules/mod_proxy.so
+LoadModule proxy_http_module modules/mod_proxy_http.so
+LoadModule expires_module modules/mod_expires.so
+LoadModule deflate_module modules/mod_deflate.so
+
+<VirtualHost *:80>
+    ServerName <%= @hostname %>
+<% @aliases.each do |serveralias| -%>
+    ServerAlias <%= serveralias %>
+<% end -%>
+
+    RewriteEngine On
+    RewriteCond %{HTTPS} off
+    RewriteRule ^/(.*) https://<%= @hostname %>/$1 [R,NE]
+
+    RewriteCond %{HTTP_HOST} !^<%= @hostname %>$
+    RewriteRule ^/(.*) https://<%= @hostname %>/$1 [R,NE]
+</VirtualHost>
+
+<VirtualHost *:443>
+    ServerName <%= @hostname %>
+<% @aliases.each do |serveralias| -%>
+    ServerAlias <%= serveralias %>
+<% end -%>
+    DocumentRoot <%= @docroot %>
+
+    LogFormat "%h %l %{X-Username}i %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-Agent}i\"" logstash
+    CustomLog /var/log/httpd/<%= @log_prefix %>_access_log logstash
+    ErrorLog /var/log/httpd/<%= @log_prefix %>_error_log
+    Header set Access-Control-Allow-Origin "*"
+
+    AddOutputFilterByType DEFLATE text/html text/plain text/css application/x-javascript application/json text/javascript
+    <Location />
+        SetOutputFilter DEFLATE
+        <Limit PUT DELETE>
+            Order deny,allow
+            Deny from all
+        </Limit>
+    </Location>
+
+    ProxyRequests On
+    ProxyVia On
+    ProxyTimeout 600
+
+    ExpiresActive On
+    ExpiresDefault "now"
+
+    <Location /vendor>
+        ExpiresActive Off
+    </Location>
+
+    RewriteEngine On
+    RewriteCond %{HTTP_HOST} !^(<%= @hostname %>|<%= @node[:fqdn] %>)$
+    RewriteRule ^/(.*) https://<%= @hostname %>/$1 [R,NE]
+
+    RewriteRule ^/(.*_aliases|.*/_alias.*|_nodes|_nodes/.*|_cluster/.*|.*/?_search|.*/?_mapping|kibana-int/dashboard/.*|kibana-int/temp.*)$ http://localhost:9200/$1 [P]
+
+    SSLEngine               on
+    SSLProtocol             all -SSLv2 -SSLv3
+    SSLCipherSuite          ALL:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!3DES:!MD5:!PSK:!IDEA:!SEED
+    SetEnvIf User-Agent ".*MSIE.*" \
+             nokeepalive ssl-unclean-shutdown \
+             downgrade-1.0 force-response-1.0
+
+</VirtualHost>

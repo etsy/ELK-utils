@@ -1,0 +1,38 @@
+{
+  "name": "Logstash",
+  "description": "These boxes run Logstash as part of an ELK cluster",
+  "json_class": "Chef::Role",
+  "default_attributes": {
+    "system": {
+        "limits": [
+            [ "*", "-", "nproc", "10240" ],
+            [ "elasticsearch", "-", "nofile", "512000" ],
+            [ "elasticsearch", "-", "memlock", "unlimited" ]
+        ],
+        "sysctls": {
+            "net_core_rmem_max": "1048576",
+            "net_core_wmem_max": "1048576",
+            "net_ipv4_tcp_rmem": { "min_bytes": "4096", "default_bytes": "65536", "max_bytes": "1048576" },
+            "net_ipv4_tcp_wmem": { "min_bytes": "4096", "default_bytes": "65536", "max_bytes": "1048576" },
+            "net_core_rmem_default": "16777216"
+        }
+    },
+    "logstash": {
+        "additional_plugins": {
+          "logstash-filter-prune": "0.1.5",
+          "logstash-filter-translate": "0.1.9",
+          "logstash-input-http": "1.0.2"
+        },
+        "java_home": "/usr/java/jdk1.8.0_60"
+    }
+  },
+  "chef_type": "role",
+  "run_list": [
+    "role[Base]",
+    "recipe[installers::jdk8_u60]",
+    "recipe[logstash::server]",
+    "recipe[logstash::plugins]"
+  ],
+  "env_run_lists": {
+  }
+}

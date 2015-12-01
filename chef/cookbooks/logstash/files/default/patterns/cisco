@@ -1,0 +1,7 @@
+# Cisco WLC Logs, right now we're doing basic extraction, nothing too special.
+# Note these have two timestamps, one from Cisco and one from syslog. We're ignoring the syslog one.
+CISCO_WLC_EVENTS (?:%{SYSLOGTIMESTAMP}) %{HOSTNAME:hostname} %{DATA:wlc_name}: \*%{DATA:process_name}: %{CISCOTIMESTAMP:timestamp}: %(%{DATA:event_type}): (%{GREEDYDATA:event_message})
+
+# Cisco AP Logs, right now we're doing basic extraction, nothign too special. 
+CISCO_AP_EVENTS (?:%{SYSLOGTIMESTAMP}) %{IP:ap_ip} AP:(%{DATA:ap_mac}): \*%{CISCOTIMESTAMP:timestamp}: %(%{DATA:event_type}): (%{GREEDYDATA:event_message})
+

@@ -1,0 +1,52 @@
+#!/bin/sh
+#
+# elasticsearch <summary>
+#
+# chkconfig:   2345 80 20
+# description: Starts and stops a single elasticsearch instance on this system 
+#
+
+### BEGIN INIT INFO
+# Provides: Elasticsearch
+# Required-Start: $network $named
+# Required-Stop: $network $named
+# Default-Start: 2 3 4 5
+# Default-Stop: 0 1 6
+# Short-Description: This service manages the elasticsearch daemon
+# Description: Elasticsearch is a very scalable, schema-free and high-performance search solution supporting multi-tenancy and near realtime search.
+### END INIT INFO
+
+num_instances=$( ls /etc/init.d/elasticsearch? | wc -l )
+
+start() {
+    for inst in $( seq 1 ${num_instances} ); do
+        test -f /etc/init.d/elasticsearch${inst} && /etc/init.d/elasticsearch${inst} start
+    done
+}
+
+stop() {
+    for inst in $( seq 1 ${num_instances} ); do
+        test -f /etc/init.d/elasticsearch${inst} && /etc/init.d/elasticsearch${inst} stop
+    done
+}
+
+restart() {
+    stop
+    start
+}
+
+case "$1" in
+    start)
+        $1
+        ;;
+    stop)
+        $1
+        ;;
+    restart)
+        $1
+        ;;
+    *)
+        echo $"Usage: $0 {start|stop|restart}"
+        exit 2
+esac
+exit $?

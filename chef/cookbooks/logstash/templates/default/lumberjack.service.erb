@@ -1,0 +1,11 @@
+[Unit]
+Description=Lumberjack
+BindTo=network.target
+
+[Install]
+WantedBy=multi-user.target
+
+[Service]
+Type=simple
+LimitNOFILE=65550
+ExecStart=/opt/lumberjack/bin/lumberjack -config /etc/lumberjack.conf -spool-size 500 -idle-flush-time 5s -from-beginning=true -threads 9 -num-workers 9 -progress-file /var/run/.lumberjack -pid-file /var/run/lumberjack.pid -log-file /var/log/lumberjack.log -temp-dir /var/run

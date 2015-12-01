@@ -1,0 +1,35 @@
+{
+  "name": "Elasticsearch",
+  "description": "These boxes run Elasticsearch for storing data in our ELK cluster",
+  "json_class": "Chef::Role",
+  "default_attributes": {
+    "elasticsearch": {
+      "es_cluster_name": "elasticsearch"
+    },
+    "system": {
+        "limits": [
+            [ "*", "-", "nproc", "10240" ],
+            [ "elasticsearch", "-", "nofile", "512000" ],
+            [ "elasticsearch", "-", "memlock", "unlimited" ]
+        ],
+        "sysctls": {
+            "kernel_sysrq": "1"
+        }
+    },
+    "elasticsearch": {
+        "java_home": "/usr/java/jdk1.8.0_60",
+        "jmx" : "true"
+    }
+  },
+  "chef_type": "role",
+  "run_list": [
+    "role[Base]",
+    "recipe[installers::jdk8_u60]",
+    "recipe[elasticsearch]",
+    "recipe[elasticsearch::plugins]",
+    "recipe[elasticsearch::snapshot_clients]",
+    "recipe[elasticsearch::licenses]"
+  ],
+  "env_run_lists": {
+  }
+}

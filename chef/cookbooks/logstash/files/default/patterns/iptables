@@ -1,0 +1,1 @@
+IPTABLES (%{GREEDYDATA:syslog_host} : )?%{SYSLOGTIMESTAMP:[@metadata][timestamp]} %{WORD:source_host} kernel:.*IN=(%{WORD:in_interface})? OUT=(%{WORD:out_interface})? (MAC=%{COMMONMAC:dst_mac}:%{COMMONMAC:src_mac}:..:..)?.*SRC=%{IP:src_ip} DST=%{IP:dst_ip} %{GREEDYDATA:iptables_data}PROTO=%{WORD:proto}? SPT=%{INT:src_port}? DPT=%{INT:dst_port}?

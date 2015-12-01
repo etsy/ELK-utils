@@ -1,0 +1,30 @@
+  lumberjack {
+    'codec' => 'plain'
+    'port' => '9991'
+    'ssl_certificate' => '/etc/pki/logstash/lumberjack.crt'
+    'ssl_key' => '/etc/pki/logstash/lumberjack.key'
+  }
+
+  udp {
+    'codec' => 'json'
+    'port' => '8211'
+  }
+
+  udp {
+    'codec' => 'msgpack'
+    'port' => '8212'
+  }
+
+  tcp {
+    'codec' => 'json_lines'
+    'port' => '8213'
+  }
+
+  syslog {
+    'type' => 'syslog'
+  }
+
+  heartbeat {
+    'message' => 'epoch'
+    'type' => 'heartbeat'
+  }

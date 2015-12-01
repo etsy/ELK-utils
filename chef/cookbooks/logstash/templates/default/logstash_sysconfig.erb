@@ -1,0 +1,8 @@
+JAVA_HOME=<%= node[:logstash][:java_home] %>
+JAVACMD=<%= node[:logstash][:java_home] %>/bin/java
+LS_HOME="<%= node[:logstash][:server][:base_dir] %>"
+LS_HEAP_SIZE="<%= node[:logstash][:server][:ls_mem] %>"
+JAVA_OPTS="<%= node[:logstash][:server][:gc_opts] %> -XX:+UseCompressedOops -Xms<%= node[:logstash][:server][:ls_mem] %> -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.port=3334"
+
+DAEMON=/opt/logstash/bin/logstash
+DAEMON_OPTS="agent -f /etc/logstash/logstash.conf -w <%= node[:logstash][:server][:worker_limit] %> --pluginpath <%= node[:logstash][:server][:base_dir] %>/plugins"

@@ -18,3 +18,17 @@ To remove a node from the cluster:
 
 To add a node to the cluster:
 `./elkvacuate.rb -a invacuate -h nodetoremove.example.com -u elkmaster.example.com -p 1234`
+
+## Chef
+
+This directory contains example roles, cookbooks, and data bags that can be used to
+provision and maintain an ELK cluster relatively easily. These Chef code samples are
+for example purposes only; they are provided as-is and no plans are made to maintain
+or update them.
+
+## irccat
+
+This directory contains an example script containing commands that can be used with
+an irc bot such as irccat for monitoring and managing an Elasticsearch cluster. These
+commands are mostly wrappers around Elasticsearch's API. These code samples are also
+provided as is for example purposes only, and will not be maintained or updated.

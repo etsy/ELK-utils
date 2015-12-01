@@ -1,0 +1,14 @@
+input {
+<%= render "partials/input/#{@elk_cluster}.erb" %>
+}
+
+filter {
+hashid { }
+<%= render "partials/filter/#{@elk_cluster}.erb" %>
+}
+
+# If you increase the ES worker threads, make sure (workers *
+# num_logstash_servers) is smaller than bulk threadpool in elasticsearch
+output {
+<%= render "partials/output/#{@elk_cluster}.erb" %>
+}

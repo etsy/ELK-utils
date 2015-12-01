@@ -1,0 +1,10 @@
+# lumberjack
+#
+# Automatically start lumberjack
+#
+
+start on runlevel [2345]
+stop on runlevel [S016]
+
+respawn
+exec /opt/lumberjack/bin/lumberjack -config /etc/lumberjack.conf -spool-size 500 -idle-flush-time 5s -from-beginning=true -threads 9 -num-workers 9 -progress-file /var/run/.lumberjack -pid-file /var/run/lumberjack.pid -log-file /var/log/lumberjack.log -temp-dir /var/run

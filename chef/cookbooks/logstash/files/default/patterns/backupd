@@ -1,0 +1,1 @@
+BACKUPD_LOG \[%{DATA:level}] (?<timestamp>\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}) (\[%{DATA:job}] )?(\[%{DATA:backupd_uuid}] )?%{GREEDYDATA:[@metadata][log_message]}

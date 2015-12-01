@@ -1,0 +1,2 @@
+ELASTICSEARCH_LOG \[%{TIMESTAMP_ISO8601:[@metadata][timestamp]}\]\[%{DATA:log_level}(?:\s+)?\]\[%{DATA:es_module}(?:\s+)?\] \[%{DATA:es_node}\] \[%{DATA:es_log_index}\](\[%{NONNEGINT:es_shard}\])? %{GREEDYDATA:[@metadata][log_message]}
+ELASTICSEARCH_SLOW_LOG \[%{TIMESTAMP_ISO8601:[@metadata][timestamp]}\]\[%{DATA:log_level}(?:\s+)?\]\[%{DATA:es_module}(?:\s+)?\] \[%{DATA:es_node}\] \[%{DATA:es_log_index}\](\[%{NONNEGINT:es_shard}\])? took\[%{NUMBER}s\], took_millis\[%{NUMBER:l_es_query_took_millis}\],.*?source\[%{GREEDYDATA}\], extra_source.*
