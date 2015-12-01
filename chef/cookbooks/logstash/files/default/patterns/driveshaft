@@ -1,1 +1,0 @@
-DRIVESHAFT_LOG \[(?<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3})] \[%{DATA:level}] \[%{DATA:thread_id}] \[%{DATA:log_name}] %{GREEDYDATA:[@metadata][log_message]}

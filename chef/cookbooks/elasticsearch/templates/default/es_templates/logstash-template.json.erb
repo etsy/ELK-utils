@@ -1,20 +1,12 @@
 {
     "template": "logstash-*",
     "settings" : {
-    <% if node[:hostname] =~ /develk[0-9]{2}/ -%>
-        "number_of_shards" : 4,
-        "number_of_replicas" : 1,
-    <% elsif node[:habitat] == "production" -%>
         "number_of_shards" : 60,
         "number_of_replicas" : 1,
         "index.refresh_interval" : "5s",
         "index.routing.allocation.total_shards_per_node" : 1,
         "index.translog.flush_threshold_size" : "200mb",
         "index.routing.allocation.include._host": "<%= node[:elasticsearch][:index_shard_allocations].join(',')  %>",
-    <% else -%>
-        "number_of_shards" : 1,
-        "number_of_replicas" : 0,
-    <% end -%>
         "index.search.slowlog.threshold.query.warn": "100ms",
         "index.search.slowlog.threshold.fetch.warn": "100ms",
         "index.query.default_field" : "message",
@@ -209,84 +201,6 @@
                 "nagios_epoch" : { "type": "string", "index" : "not_analyzed", "fielddata": { "format": "doc_values" } }
             }
         },
-        "search_mixer_log": {
-            "_all": { "enabled": false },
-            "_size": { "enabled": true },
-            "dynamic_templates": [
-                {
-                    "long_template" : {
-                        "match" : "l_*",
-                        "mapping" : { "type" : "long", "index" : "not_analyzed" }
-                    }
-                },
-                {
-                    "double_template" : {
-                        "match" : "d_*",
-                        "mapping" : { "type" : "double", "index" : "not_analyzed" }
-                    }
-                },
-                {
-                    "bool_template" : {
-                        "match" : "b_*",
-                        "mapping" : { "type" : "boolean", "index" : "not_analyzed" }
-                    }
-                },
-                {
-                    "string_template" : {
-                        "match" : "*",
-                        "mapping": { "type": "string", "index": "not_analyzed" },
-                        "match_mapping_type" : "string"
-                    }
-                }
-            ],
-            "properties" : {
-                "logdata" : { "type" : "object", "dynamic" : true, "path": "full",
-                    "properties" : {
-                        "diversity_blockLimit" : { "type": "integer", "index": "not_analyzed" },
-                        "diversity_blockSize" : { "type": "integer", "index": "not_analyzed" },
-                        "diversity_blockSizes" : { "type": "integer", "index": "not_analyzed" },
-                        "diversity_progressive_maxWindow" : { "type": "integer", "index": "not_analyzed" },
-                        "diversity_progressive_measurementWindow" : { "type": "integer", "index": "not_analyzed" },
-                        "diversity_progressive_targetMaxShare" : { "type": "float", "index": "not_analyzed" },
-                        "diversity_scoreThreshold" : { "type": "float", "index": "not_analyzed" },
-                        "diversity_window" : { "type": "integer", "index": "not_analyzed" },
-                        "explain" : { "type": "boolean", "index": "not_analyzed" },
-                        "facet" : { "type": "boolean", "index": "not_analyzed" },
-                        "fieldValueCacheHits" : { "type": "integer", "index": "not_analyzed" },
-                        "fieldValueCacheMisses" : { "type": "integer", "index": "not_analyzed" },
-                        "filterCacheHits" : { "type": "integer", "index": "not_analyzed" },
-                        "filterCacheMisses" : { "type": "integer", "index": "not_analyzed" },
-                        "gcct" : { "type": "integer", "index": "not_analyzed" },
-                        "gct" : { "type": "integer", "index": "not_analyzed" },
-                        "limit" : { "type": "integer", "index": "not_analyzed" },
-                        "listingQualityScorePercentage" : { "type": "float", "index": "not_analyzed" },
-                        "offset" : { "type": "integer", "index": "not_analyzed" },
-                        "queryResultCacheHits" : { "type": "integer", "index": "not_analyzed" },
-                        "queryResultCacheMisses" : { "type": "integer", "index": "not_analyzed" },
-                        "results" : { "type": "integer", "index": "not_analyzed" },
-                        "secondarySortOrder" : { "type": "string", "index": "not_analyzed" },
-                        "shardCount" : { "type": "integer", "index": "not_analyzed" },
-                        "shardTimeAvg" : { "type": "float", "index": "not_analyzed" },
-                        "shardTimeMax" : { "type": "integer", "index": "not_analyzed" },
-                        "shouldDampenTimeBoost" : { "type": "boolean", "index": "not_analyzed" },
-                        "shouldReturnShopIds" : { "type": "boolean", "index": "not_analyzed" },
-                        "shouldUseMultiplicativeRecency" : { "type": "boolean", "index": "not_analyzed" },
-                        "solrTime" : { "type": "integer", "index": "not_analyzed" },
-                        "solr_uniq" : { "type": "float", "index": "not_analyzed" },
-                        "sortOrder" : { "type": "string", "index": "not_analyzed" },
-                        "staleBy" : { "type": "integer", "index": "not_analyzed" },
-                        "timeAllowedMs" : { "type": "integer", "index": "not_analyzed" },
-                        "timeBoost" : { "type": "float", "index": "not_analyzed" },
-                        "topLevelCacheHit" : { "type": "boolean", "index": "not_analyzed" },
-                        "uniq" : { "type": "float", "index": "not_analyzed" },
-                        "unique_listing_ids" : { "type": "integer", "index": "not_analyzed" },
-                        "unique_shop_ids" : { "type": "integer", "index": "not_analyzed" },
-                        "useAdsFilter" : { "type": "boolean", "index": "not_analyzed" },
-                        "wc" : { "type": "integer", "index": "not_analyzed" }
-                    }
-                }
-            }
-        },
         "search_solr_log": {
             "_all": { "enabled": false },
             "_size": { "enabled": true },
@@ -343,52 +257,6 @@
                     }
                 }
             }
-        },
-        "cross_stitch_span_log": {
-            "dynamic_templates": [
-                {
-                    "cs_span_binary_annotations": {
-                        "path_match": "span.binary_annotations.*",
-                        "match_mapping_type": "string",
-                        "mapping": {
-                            "type": "string",
-                            "analyzer": "whitespace"
-                        }
-                    }
-                }
-            ],
-            "properties": {
-                "span": {
-                    "type": "object",
-                    "dynamic": false,
-                    "properties": {
-                        "type": { "type": "string", "index": "not_analyzed", "fielddata": { "format": "doc_values" } },
-                        "span_id": { "type": "string", "index": "not_analyzed", "fielddata": { "format": "doc_values" } },
-                        "parent_id": { "type": "string", "index": "not_analyzed", "fielddata": { "format": "doc_values" } },
-                        "root_id": { "type": "string", "index": "not_analyzed", "fielddata": { "format": "doc_values" } },
-                        "name": { "type": "string", "index": "not_analyzed", "fielddata": { "format": "doc_values" } },
-                        "endpoint": { "type": "string", "index": "not_analyzed", "fielddata": { "format": "doc_values" } },
-                        "service": { "type": "string", "index": "not_analyzed", "fielddata": { "format": "doc_values" } },
-                        "debug": { "type": "boolean", "null_value": false, "fielddata": { "format": "doc_values" } },
-                        "annotations": { "type": "object", "dynamic": false,
-                            "properties": {
-                                "timestamp": { "type": "long", "fielddata": { "format": "doc_values" } },
-                                "value": { "type": "string", "analyzer": "whitespace" },
-                                "duration": { "type": "long", "fielddata": { "format": "doc_values" } },
-                                "endpoint": { "type": "string", "index": "not_analyzed", "fielddata": { "format": "doc_values" } }
-                            }
-                        },
-                        "binary_annotations": { "type": "object", "dynamic": true,
-                            "properties": {
-                                "db.params": { "type": "string", "analyzer": "whitespace" },
-                                "endpoint": { "type": "string", "index": "not_analyzed", "fielddata": { "format": "doc_values" } },
-                                "key": { "type": "string", "analyzer": "whitespace" },
-                                "mc.keys": { "type": "string", "index": "not_analyzed" }
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        } 
     }
 }

@@ -1,1 +1,0 @@
-PFLOG %{DATA:host} :: %{DATA:[@metadata][full_date]} rule %{DATA:rule_number}/\(\w+\) %{WORD:firewall_action} %{WORD:direction} on %{WORD:interface}: %{IPV4:src_ip}(.%{INT:src_port})? > %{IPV4:dst_ip}(.%{INT:dst_port})?: %{GREEDYDATA:proto_flags}

@@ -440,11 +440,11 @@ def get_recovery_info
     end
     header = sorted.pop
     h = header.split(" ")
-    puts "#{h[0]} #{h[3]} #{h[4]} #{h[5]} #{h[6]} #{h[10]} #{h[12]}"
+    printf("#UNDERLINE%-21s|%-12s|%-10s|%-32s|%-32s|%-14s|%-14s#NORMAL\n", h[0], h[3], h[4], h[5], h[6], h[10], h[12])
     sorted.take(10).each do |line|
         l = line.split(" ")
-        puts "#{l[0]} #{l[3]} #{l[4]} #{l[5]} #{l[6]} #{l[10]} #{l[12]}"
-    end
+        printf("#TEAL%-21s#NORMAL|%-12s|%-10s|#RED%-32s#NORMAL|#GREEN%-32s#NORMAL|%-14s|%-14s\n", l[0], l[3], l[4], l[5], l[6], l[10], l[12])
+    end    
 end
 
 def is_es()

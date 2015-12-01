@@ -1,5 +1,0 @@
-HADOOP_GENERIC_LOGLINE %{DATESTAMP:[@metadata][timestamp]} %{LOGLEVEL:level} %{JAVACLASS:class_name}: %{GREEDYDATA:log_message}
-HADOOP_NN_LOGLINE %{DATESTAMP:[@metadata][timestamp]} %{LOGLEVEL:level} %{GREEDYDATA:log_message}
-HADOOP_AUDIT_LOGLINE %{DATESTAMP:[@metadata][timestamp]} %{LOGLEVEL:level} %{GREEDYDATA}%{SPACE}ugi=%{USERNAME:username} %{GREEDYDATA}%{SPACE}ip=/%{IP:ip}%{SPACE}cmd=%{WORD:command}%{SPACE}src=%{UNIXPATH:src}%{SPACE}dst=(%{UNIXPATH:dst}|null)%{SPACE}%{GREEDYDATA}
-HADOOP_LOGLINE %{TIMESTAMP_ISO8601:[@metadata][timestamp]} ?%{SYSLOGHOST:logsource} %{SYSLOGPROG}: %{GREEDYDATA:[@metadata][log_message]}
-OOZIE_ROLLUP_LOGLINE %{TIMESTAMP_ISO8601:[@metadata][timestamp]} ?%{WORD:level} %{JAVACLASS:class}: %{WORD:log_namespace} %{DATA:rollup_file} %{WORD:category} %{WORD:frequency} %{GREEDYDATA:[@metadata][log_message]}
