@@ -14,10 +14,10 @@ Before running this script, add or remove the nodes from your ES cluster
 settings and mapping templates as needed.
 
 To remove a node from the cluster:
-`./elkvacuate.rb -a evacuate -h nodetoremove.example.com -u elkmaster.example.com -p 1234`
+`./elkvacuate.rb -a evacuate -h nodetoremove.example.com -u http://elkmaster.example.com -p 1234`
 
 To add a node to the cluster:
-`./elkvacuate.rb -a invacuate -h nodetoremove.example.com -u elkmaster.example.com -p 1234`
+`./elkvacuate.rb -a invacuate -h nodetoremove.example.com -u http://elkmaster.example.com -p 1234`
 
 ## Chef
 
