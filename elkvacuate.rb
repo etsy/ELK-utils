@@ -64,6 +64,8 @@ def evacuate_node(evacuating_node)
         puts "Error getting list of indices: #{e}"
     end
 
+    puts "Evacuating #{indices.count} indices from #{evacuating_node} ..."
+
     indices.each do |index|
         if index == "logstash-#{todays_date}"
             # There's a bug where moving today's index can hang, so we skip it.
