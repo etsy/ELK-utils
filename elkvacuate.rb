@@ -158,20 +158,6 @@ def invacuate_node(invacuating_node)
             puts "Waiting 10 seconds before continuing..."
             sleep 10
         end
-        begin
-            if not include_list.include?("#{invacuating_node}")
-                puts "Adding node to include list..."
-                include_list = add_node_to_list(include_list, invacuating_node)
-                settings_json = JSON.generate({ 'index' => { 'routing' => { 'allocation' => { 'include' => { '_host' => "#{include_list}" } } } } })
-                response = @http.put("/#{index}/_settings", settings_json)
-                puts "#{response.body} (#{response.code} #{response.message})"
-                sleep 10
-            end
-        rescue Exception => e
-            puts "Error setting new include list for index #{index}: #{e}"
-            puts "Waiting 10 seconds before continuing..."
-            sleep 10
-        end
     end
 end
 
