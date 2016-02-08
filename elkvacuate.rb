@@ -12,7 +12,8 @@ OptionParser.new do |opts|
     opts.on('-h', '--host H', String, "Host to evacuate or invacuate") { |v| options[:host] = v }
     opts.on('-u', '--url U', String, "URL of Elasticsearch master") { |v| options[:url] = v }
     opts.on('-p', '--port P', String, "Port the ES master is listening on (default is 9200)") { |v| options[:port] = v }
-end.parse! 
+    opts.on('-i', '--index I', String, "Specify an index to evacuate, (default is all indices)") { |v| options[:index] = v }
+end.parse!
 
 if not options[:port]
     options[:port] = "9200"
@@ -28,6 +29,7 @@ def get_settings_node_list(settings_hash, index, type)
         list = settings_hash["#{index}"]['settings']['index']['routing']['allocation'][type]['_host']
     rescue Exception => e
         # If one of those keys doesn't exist, just return an empty "list"
+        e = ""
         return ""
     end
     return list.nil? ? "" : list
@@ -48,28 +50,30 @@ def add_node_to_list(list, node)
     return list
 end
 
-def evacuate_node(evacuating_node)
+def get_indices(options)
+    indices = []
+    if !options[:index].nil?
+        indices = options[:index].split(',')
+    else
+        begin
+            indices_page = @http.get('/_cat/indices?v')
+            indices_page.body.split("\n").drop(1).each do |line|
+                indices.push(line.split()[2])
+            end
+        rescue Exception => e
+            puts "Error getting list of indices: #{e}"
+        end
+    end
+    return indices
+end
+
+def evacuate_node(evacuating_node, indices)
     # To evacuate a node, we need to get a list of all indices. For each index
     # get the current list of excluded nodes, then update the settings with
     # the new node added to that list.
     puts "Evacuating #{evacuating_node}..."
-    indices = []
-    todays_date = Time.now.strftime("%Y.%m.%d")
-    begin
-        indices_page = @http.get('/_cat/indices?v')
-        indices_page.body.split("\n").drop(1).each do |line|
-            indices.push(line.split()[2])
-        end
-    rescue Exception => e
-        puts "Error getting list of indices: #{e}"
-    end
 
     indices.each do |index|
-        if index == "logstash-#{todays_date}"
-            # There's a bug where moving today's index can hang, so we skip it.
-            puts "Skipping today's index #{index}..."
-            next
-        end
         puts "Evacuating #{index} from #{evacuating_node}..."
         # The sleeps are to avoid killing the master
         sleep 10
@@ -125,7 +129,7 @@ def invacuate_node(invacuating_node)
     rescue Exception => e
         puts "Error getting list of indices: #{e}"
     end
-    
+
     indices.each do |index|
         if index == "logstash-#{todays_date}"
             puts "Skipping today's index #{index}..."
@@ -186,4 +190,6 @@ else
     exit
 end
 
-send(method, options[:host])
+indices = get_indices(options)
+
+send(method, options[:host], indices)
