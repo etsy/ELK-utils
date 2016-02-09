@@ -97,6 +97,8 @@ def evacuate_node(evacuating_node, indices)
     # the new node added to that list.
     puts "Evacuating #{evacuating_node}..."
 
+    puts "Evacuating #{indices.count} indices from #{evacuating_node} ..."
+
     indices.each do |index|
         puts "Evacuating #{index} from #{evacuating_node}..."
         # The sleeps are to avoid killing the master
