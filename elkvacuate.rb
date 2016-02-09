@@ -64,7 +64,31 @@ def get_indices(options)
             puts "Error getting list of indices: #{e}"
         end
     end
+    indices.sort!
     return indices
+end
+
+def get_index_settings(index)
+    begin
+        index_settings_page = @http.get("/#{index}/_settings")
+        index_settings_hash = JSON.parse(index_settings_page.body)
+    rescue Exception => e
+        puts "Error getting settings for index #{index}: #{e}"
+    end
+    return index_settings_hash
+end
+
+def update_settings(index, settings_hash)
+    settings_json = JSON.generate(settings_hash)
+
+    begin
+        response = @http.put("/#{index}/_settings", settings_json)
+        puts "#{response.body} (#{response.code} #{response.message})"
+    rescue Exception => e
+        puts "Error setting new exclude list for index #{index}: #{e}"
+        puts "Waiting 10 seconds before continuing..."
+        sleep 10
+    end
 end
 
 def evacuate_node(evacuating_node, indices)
@@ -76,105 +100,61 @@ def evacuate_node(evacuating_node, indices)
     indices.each do |index|
         puts "Evacuating #{index} from #{evacuating_node}..."
         # The sleeps are to avoid killing the master
-        sleep 10
-        begin
-            index_settings_page = @http.get("/#{index}/_settings")
-            index_settings_hash = JSON.parse(index_settings_page.body)
-        rescue Exception => e
-            puts "Error getting settings for index #{index}: #{e}"
-            next
-        end
-
+        index_settings_hash = get_index_settings(index)
         exclude_list = get_settings_node_list(index_settings_hash, index, 'exclude')
         include_list = get_settings_node_list(index_settings_hash, index, 'include')
+        do_update = false
 
-        begin
-            if not exclude_list.include?(evacuating_node)
-                exclude_list = add_node_to_list(exclude_list, evacuating_node)
-                settings_json = JSON.generate({ 'index' => { 'routing' => { 'allocation' => { 'exclude' => { '_host' => "#{exclude_list}" } } } } })
-                response = @http.put("/#{index}/_settings", settings_json)
-                puts "#{response.body} (#{response.code} #{response.message})"
-            end
-        rescue Exception => e
-            puts "Error setting new exclude list for index #{index}: #{e}"
-            puts "Waiting 10 seconds before continuing..."
-            sleep 10
+        allocation_hash = { 'index' => { 'routing' => { 'allocation' => {} } } }
+        if not exclude_list.include?(evacuating_node)
+            puts "Adding node to exclude list..."
+            exclude_list = add_node_to_list(exclude_list, evacuating_node)
+            allocation_hash['index']['routing']['allocation']['exclude'] = { '_host' => "#{exclude_list}" }
+            do_update = true
         end
-        begin
-            if include_list.include?(evacuating_node)
-                include_list = remove_node_from_list(include_list, evacuating_node)
-                settings_json = JSON.generate({ 'index' => { 'routing' => { 'allocation' => { 'include' => { '_host' => "#{include_list}" } } } } })
-                response = @http.put("/#{index}/_settings", settings_json)
-                puts "#{response.body} (#{response.code} #{response.message})"
-            end
-        rescue Exception => e
-            puts "Error setting new include list for index #{index}: #{e}"
-            puts "Waiting 10 seconds before continuing..."
-            sleep 10
+        if include_list.include?(evacuating_node)
+            puts "Removing node from include list..."
+            include_list = remove_node_from_list(include_list, evacuating_node)
+            allocation_hash['index']['routing']['allocation']['include'] = { '_host' => "#{include_list}" }
+            do_update = true
+        end
+        if do_update
+            update_settings(index, allocation_hash)
+        else
+            puts "No change to include or exclude lists for #{index}"
         end
     end
 end
 
-def invacuate_node(invacuating_node)
+def invacuate_node(invacuating_node, indices)
     # Invacuating is the opposite of evacuating. It will have to, for each index, ADD the index to the
     # include list AND name sure that it's NOT in the exclude list.
     puts "Invacuating #{invacuating_node}..."
-    indices = []
-    todays_date = Time.now.strftime("%Y.%m.%d")
-    begin
-        indices_page = @http.get('/_cat/indices?v')
-        indices_page.body.split("\n").drop(1).each do |line|
-            indices.push(line.split()[2])
-        end
-    rescue Exception => e
-        puts "Error getting list of indices: #{e}"
-    end
 
     indices.each do |index|
-        if index == "logstash-#{todays_date}"
-            puts "Skipping today's index #{index}..."
-            next
-        end
         puts "Invacuating #{index} to #{invacuating_node}..."
-        sleep 10
-        begin
-            index_settings_page = @http.get("/#{index}/_settings")
-            index_settings_hash = JSON.parse(index_settings_page.body)
-        rescue Exception => e
-            puts "Error getting settings for index #{index}: #{e}"
-            next
-        end
-
+        index_settings_hash = get_index_settings(index)
         exclude_list = get_settings_node_list(index_settings_hash, index, 'exclude')
         include_list = get_settings_node_list(index_settings_hash, index, 'include')
+        do_update = false
 
-        begin
-            if exclude_list.include?("#{invacuating_node}")
-                puts "Removing node from exclude list..."
-                exclude_list = remove_node_from_list(exclude_list, invacuating_node)
-                settings_json = JSON.generate({ 'index' => { 'routing' => { 'allocation' => { 'exclude' => { '_host' => "#{exclude_list}" } } } } })
-                response = @http.put("/#{index}/_settings", settings_json)
-                puts "#{response.body} (#{response.code} #{response.message})"
-                sleep 10
-            end
-        rescue Exception => e
-            puts "Error setting new exclude list for index #{index}: #{e}"
-            puts "Waiting 10 seconds before continuing..."
-            sleep 10
+        allocation_hash = { 'index' => { 'routing' => { 'allocation' => {} } } }
+        if exclude_list.include?(invacuating_node)
+            puts "Removing node from exclude list..."
+            exclude_list = remove_node_from_list(exclude_list, invacuating_node)
+            allocation_hash['index']['routing']['allocation']['exclude'] = { '_host' => "#{exclude_list}" }
+            do_update = true
         end
-        begin
-            if not include_list.include?("#{invacuating_node}")
-                puts "Adding node to include list..."
-                include_list = add_node_to_list(include_list, invacuating_node)
-                settings_json = JSON.generate({ 'index' => { 'routing' => { 'allocation' => { 'include' => { '_host' => "#{include_list}" } } } } })
-                response = @http.put("/#{index}/_settings", settings_json)
-                puts "#{response.body} (#{response.code} #{response.message})"
-                sleep 10
-            end
-        rescue Exception => e
-            puts "Error setting new include list for index #{index}: #{e}"
-            puts "Waiting 10 seconds before continuing..."
-            sleep 10
+        if not include_list.include?(invacuating_node)
+            puts "Adding node to include list..."
+            include_list = add_node_to_list(include_list, invacuating_node)
+            allocation_hash['index']['routing']['allocation']['include'] = { '_host' => "#{include_list}" }
+            do_update = true
+        end
+        if do_update
+            update_settings(index, allocation_hash)
+        else
+            puts "No change to include or exclude lists for #{index}"
         end
     end
 end
