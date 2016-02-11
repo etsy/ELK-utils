@@ -9,11 +9,14 @@ options = {}
 OptionParser.new do |opts|
     opts.banner = "Usage: elkvacuate.rb -a {evacuate|invacuate} -h host [-s stack]"
     opts.on('-a', '--action A', String, "Action to take on node") { |v| options[:action] = v }
-    opts.on('-h', '--host H', String, "Host to evacuate or invacuate") { |v| options[:host] = v }
+    opts.on('-h', '--host H', String, "Comma-separated list of hosts to evacuate or invacuate") { |v| options[:host] = v }
     opts.on('-u', '--url U', String, "URL of Elasticsearch master") { |v| options[:url] = v }
     opts.on('-p', '--port P', String, "Port the ES master is listening on (default is 9200)") { |v| options[:port] = v }
     opts.on('-i', '--index I', String, "Specify an index to evacuate, (default is all indices)") { |v| options[:index] = v }
 end.parse!
+
+# Make sure a URL for the Elasticsearch server was given
+raise OptionParser::MissingArgument if options[:url].nil?
 
 if not options[:port]
     options[:port] = "9200"
@@ -91,14 +94,14 @@ def update_settings(index, settings_hash)
     end
 end
 
-def evacuate_node(evacuating_node, indices)
+def evacuate_node(evacuating_nodes, indices)
     # To evacuate a node, we need to get a list of all indices. For each index
     # get the current list of excluded nodes, then update the settings with
     # the new node added to that list.
-    puts "Evacuating #{evacuating_node}..."
+    puts "Evacuating #{evacuating_nodes}..."
 
     indices.each do |index|
-        puts "Evacuating #{index} from #{evacuating_node}..."
+        puts "Evacuating #{index} from #{evacuating_nodes}..."
         # The sleeps are to avoid killing the master
         index_settings_hash = get_index_settings(index)
         exclude_list = get_settings_node_list(index_settings_hash, index, 'exclude')
@@ -106,17 +109,19 @@ def evacuate_node(evacuating_node, indices)
         do_update = false
 
         allocation_hash = { 'index' => { 'routing' => { 'allocation' => {} } } }
-        if not exclude_list.include?(evacuating_node)
-            puts "Adding node to exclude list..."
-            exclude_list = add_node_to_list(exclude_list, evacuating_node)
-            allocation_hash['index']['routing']['allocation']['exclude'] = { '_host' => "#{exclude_list}" }
-            do_update = true
-        end
-        if include_list.include?(evacuating_node)
-            puts "Removing node from include list..."
-            include_list = remove_node_from_list(include_list, evacuating_node)
-            allocation_hash['index']['routing']['allocation']['include'] = { '_host' => "#{include_list}" }
-            do_update = true
+        for host in evacuating_nodes
+            if not exclude_list.include?(host)
+                puts "Adding #{host} to exclude list..."
+                exclude_list = add_node_to_list(exclude_list, host)
+                allocation_hash['index']['routing']['allocation']['exclude'] = { '_host' => "#{exclude_list}" }
+                do_update = true
+            end
+            if include_list.include?(host)
+                puts "Removing #{host} from include list..."
+                include_list = remove_node_from_list(include_list, host)
+                allocation_hash['index']['routing']['allocation']['include'] = { '_host' => "#{include_list}" }
+                do_update = true
+            end
         end
         if do_update
             update_settings(index, allocation_hash)
@@ -126,30 +131,32 @@ def evacuate_node(evacuating_node, indices)
     end
 end
 
-def invacuate_node(invacuating_node, indices)
+def invacuate_node(invacuating_nodes, indices)
     # Invacuating is the opposite of evacuating. It will have to, for each index, ADD the index to the
     # include list AND name sure that it's NOT in the exclude list.
-    puts "Invacuating #{invacuating_node}..."
+    puts "Invacuating #{invacuating_nodes}..."
 
     indices.each do |index|
-        puts "Invacuating #{index} to #{invacuating_node}..."
+        puts "Invacuating #{index} to #{invacuating_nodes}..."
         index_settings_hash = get_index_settings(index)
         exclude_list = get_settings_node_list(index_settings_hash, index, 'exclude')
         include_list = get_settings_node_list(index_settings_hash, index, 'include')
         do_update = false
 
         allocation_hash = { 'index' => { 'routing' => { 'allocation' => {} } } }
-        if exclude_list.include?(invacuating_node)
-            puts "Removing node from exclude list..."
-            exclude_list = remove_node_from_list(exclude_list, invacuating_node)
-            allocation_hash['index']['routing']['allocation']['exclude'] = { '_host' => "#{exclude_list}" }
-            do_update = true
-        end
-        if not include_list.include?(invacuating_node)
-            puts "Adding node to include list..."
-            include_list = add_node_to_list(include_list, invacuating_node)
-            allocation_hash['index']['routing']['allocation']['include'] = { '_host' => "#{include_list}" }
-            do_update = true
+        for host in invacuating_nodes
+            if exclude_list.include?(host)
+                puts "Removing node from exclude list..."
+                exclude_list = remove_node_from_list(exclude_list, host)
+                allocation_hash['index']['routing']['allocation']['exclude'] = { '_host' => "#{exclude_list}" }
+                do_update = true
+            end
+            if not include_list.include?(host)
+                puts "Adding node to include list..."
+                include_list = add_node_to_list(include_list, host)
+                allocation_hash['index']['routing']['allocation']['include'] = { '_host' => "#{include_list}" }
+                do_update = true
+            end
         end
         if do_update
             update_settings(index, allocation_hash)
@@ -172,4 +179,5 @@ end
 
 indices = get_indices(options)
 
-send(method, options[:host], indices)
+host_list = options[:host].split(',')
+send(method, host_list, indices)
