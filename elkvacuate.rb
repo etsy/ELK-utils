@@ -13,6 +13,7 @@ OptionParser.new do |opts|
     opts.on('-u', '--url U', String, "URL of Elasticsearch master") { |v| options[:url] = v }
     opts.on('-p', '--port P', String, "Port the ES master is listening on (default is 9200)") { |v| options[:port] = v }
     opts.on('-i', '--index I', String, "Specify an index to evacuate, (default is all indices)") { |v| options[:index] = v }
+    opts.on('-x', '--exclude X', String, "Comma separated list of indices to exclude") { |v| options[:exclude] = v }
 end.parse!
 
 # Make sure a URL for the Elasticsearch server was given
@@ -55,6 +56,9 @@ end
 
 def get_indices(options)
     indices = []
+
+    # If specific indices were specified, use those.
+    # Otherwise, get a list from the server.
     if !options[:index].nil?
         indices = options[:index].split(',')
     else
@@ -67,6 +71,14 @@ def get_indices(options)
             puts "Error getting list of indices: #{e}"
         end
     end
+
+    # Remove indices to exclude
+    if !options[:exclude].nil?
+        exclude = options[:exclude].split(',')
+        indices = indices - exclude
+    end
+
+    # It's nice to have a sorted list to work from.
     indices.sort!
     return indices
 end
