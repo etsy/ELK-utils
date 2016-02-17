@@ -39,6 +39,20 @@ def get_settings_node_list(settings_hash, index, type)
     return list.nil? ? "" : list
 end
 
+def change_allocation(action)
+    # Enable or disable shard allocation on the cluster
+    # Valid options are "all", "primaries", "new_primaries" and "none"
+    data = JSON.generate( {
+            "persistent" => {
+                "cluster.routing.allocation.enable" => action
+            }
+        }
+    )
+    response = @http.put("/_cluster/settings", data)
+    puts "#{response.body} (#{response.code} #{response.message})"
+    return
+end
+
 def remove_node_from_list(list, node)
     # The "list" as ES stores it is really a string, but array manipulation is easier
     real_list = list.split(",")
@@ -190,6 +204,10 @@ else
 end
 
 indices = get_indices(options)
-
 host_list = options[:host].split(',')
+
+puts "Disabling shard allocation"
+change_allocation("none")
 send(method, host_list, indices)
+puts "Enabling shard allocation"
+change_allocation("all")
