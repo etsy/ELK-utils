@@ -1,5 +1,6 @@
 #!/usr/bin/env ruby
 
+require 'io/console'
 require 'net/http'
 require 'uri'
 require 'json'
@@ -14,6 +15,7 @@ OptionParser.new do |opts|
     opts.on('-p', '--port P', String, "Port the ES master is listening on (default is 9200)") { |v| options[:port] = v }
     opts.on('-i', '--index I', String, "Specify an index to evacuate, (default is all indices)") { |v| options[:index] = v }
     opts.on('-x', '--exclude X', String, "Comma separated list of indices to exclude") { |v| options[:exclude] = v }
+    opts.on('-n', '--username N', String, "Username for http auth - will prompt for password") { |v| options[:username] = v }
 end.parse!
 
 # Make sure a URL for the Elasticsearch server was given
@@ -22,6 +24,13 @@ raise OptionParser::MissingArgument if options[:url].nil?
 if not options[:port]
     options[:port] = "9200"
 end
+
+if !options[:username].nil?
+  @username = options[:username]
+  print "Password: "
+  @password = STDIN.noecho(&:gets).chomp
+end
+
 elasticsearch_uri = "#{options[:url]}:#{options[:port]}"
 uri = URI.parse(elasticsearch_uri)
 @http = Net::HTTP.new(uri.host, uri.port)
@@ -48,7 +57,11 @@ def change_allocation(action)
             }
         }
     )
-    response = @http.put("/_cluster/settings", data)
+    request = Net::HTTP::Put.new("/_cluster/settings")
+    if !@username.nil?
+      request.basic_auth(@username, @password)
+    end
+    response = @http.request(request, data)
     puts "#{response.body} (#{response.code} #{response.message})"
     return
 end
@@ -77,7 +90,11 @@ def get_indices(options)
         indices = options[:index].split(',')
     else
         begin
-            indices_page = @http.get('/_cat/indices?v')
+            request = Net::HTTP::Get.new('/_cat/indices?v')
+            if !@username.nil?
+              request.basic_auth(@username, @password)
+            end
+            indices_page = @http.request(request)
             indices_page.body.split("\n").drop(1).each do |line|
                 indices.push(line.split()[2])
             end
@@ -99,7 +116,11 @@ end
 
 def get_index_settings(index)
     begin
-        index_settings_page = @http.get("/#{index}/_settings")
+        request = Net::HTTP::Get.new("/#{index}/_settings")
+        if !@username.nil?
+            request.basic_auth(@username, @password)
+        end
+        index_settings_page = @http.request(request)
         index_settings_hash = JSON.parse(index_settings_page.body)
     rescue Exception => e
         puts "Error getting settings for index #{index}: #{e}"
@@ -111,7 +132,11 @@ def update_settings(index, settings_hash)
     settings_json = JSON.generate(settings_hash)
 
     begin
-        response = @http.put("/#{index}/_settings", settings_json)
+        request = Net::HTTP::Put.new("/#{index}/_settings")
+        if !@username.nil?
+            request.basic_auth(@username, @password)
+        end
+        response = @http.request(request, settings_json)
         puts "#{response.body} (#{response.code} #{response.message})"
     rescue Exception => e
         puts "Error setting new exclude list for index #{index}: #{e}"
