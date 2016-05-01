@@ -8,7 +8,7 @@ require 'optparse'
 
 options = {}
 OptionParser.new do |opts|
-    opts.banner = "Usage: elkvacuate.rb -a {evacuate|invacuate} -h host [-s stack]"
+    opts.banner = "Usage: elkvacuate.rb -a {evacuate|invacuate} -h host"
     opts.on('-a', '--action A', String, "Action to take on node") { |v| options[:action] = v }
     opts.on('-h', '--host H', String, "Comma-separated list of hosts to evacuate or invacuate") { |v| options[:host] = v }
     opts.on('-u', '--url U', String, "URL of Elasticsearch master") { |v| options[:url] = v }
