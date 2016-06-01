@@ -8,7 +8,7 @@ require 'optparse'
 
 options = {}
 OptionParser.new do |opts|
-    opts.banner = "Usage: elkvacuate.rb -a {evacuate|invacuate} -h host [-s stack]"
+    opts.banner = "Usage: elkvacuate.rb -a {evacuate|invacuate|cleanup} -h host [-s stack]"
     opts.on('-a', '--action A', String, "Action to take on node") { |v| options[:action] = v }
     opts.on('-h', '--host H', String, "Comma-separated list of hosts to evacuate or invacuate") { |v| options[:host] = v }
     opts.on('-u', '--url U', String, "URL of Elasticsearch master") { |v| options[:url] = v }
@@ -217,11 +217,48 @@ def invacuate_node(invacuating_nodes, indices)
     end
 end
 
+def cleanup_node(invacuating_nodes, indices)
+    # Cleaning up removed references to a node from both the include and exclude
+    # lists.
+    puts "Cleaning up references to #{invacuating_nodes}..."
+
+    indices.each do |index|
+        puts "Removing references on #{index} for #{invacuating_nodes}..."
+        index_settings_hash = get_index_settings(index)
+        exclude_list = get_settings_node_list(index_settings_hash, index, 'exclude')
+        include_list = get_settings_node_list(index_settings_hash, index, 'include')
+        do_update = false
+
+        allocation_hash = { 'index' => { 'routing' => { 'allocation' => {} } } }
+        for host in invacuating_nodes
+            if exclude_list.include?(host)
+                puts "Removing node from exclude list..."
+                exclude_list = remove_node_from_list(exclude_list, host)
+                allocation_hash['index']['routing']['allocation']['exclude'] = { '_host' => "#{exclude_list}" }
+                do_update = true
+            end
+            if include_list.include?(host)
+                puts "Removing node from include list..."
+                include_list = remove_node_from_list(include_list, host)
+                allocation_hash['index']['routing']['allocation']['include'] = { '_host' => "#{include_list}" }
+                do_update = true
+            end
+        end
+        if do_update
+            update_settings(index, allocation_hash)
+        else
+            puts "No change to include or exclude lists for #{index}"
+        end
+    end
+end
+
 case options[:action]
 when /invacuate/
     method = "invacuate_node"
 when /evacuate/
     method = "evacuate_node"
+when /cleanup/
+  method = "cleanup_node"
 else
     puts options[:action]
     puts "Valid actions are 'evacuate' and 'invacuate'."
