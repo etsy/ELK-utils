@@ -96,7 +96,8 @@ def get_indices(options)
             end
             indices_page = @http.request(request)
             indices_page.body.split("\n").drop(1).each do |line|
-                indices.push(line.split()[2])
+                index_name = line.split()[2]
+                !index_name.nil? && indices.push(line.split()[2])
             end
         rescue Exception => e
             puts "Error getting list of indices: #{e}"
