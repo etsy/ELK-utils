@@ -19,6 +19,15 @@ To remove a node from the cluster:
 To add a node to the cluster:
 `./elkvacuate.rb -a invacuate -h nodetoremove.example.com -u elkmaster.example.com -p 1234`
 
+## copy_index_mapping.py
+This script copies the mapping for a specific `type` from today's index in
+Elasticsearch, and puts it into tomorrow's index.
+The index for tomorrow is created if it doesn't exist.
+
+### Usage:
+Run as:
+`copy_index_mapping.py --host <hostname> --index_prefix logstash -t <type>`
+
 ## Chef
 
 This directory contains example roles, cookbooks, and data bags that can be used to
