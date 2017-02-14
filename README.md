@@ -26,7 +26,13 @@ The index for tomorrow is created if it doesn't exist.
 
 ### Usage:
 Run as:
-`copy_index_mapping.py --host <hostname> --index_prefix logstash -t <type>`
+`copy_index_mapping.py --host <hostname> --index-prefix logstash -t <type>`
+
+If you have multiple masters and schedule this script to run on all of them, you
+can use the `-o` switch to ensure it only gets executed on the host which is the
+current cluster master.
+
+There is currently no support for authentication.
 
 ## Chef
 
